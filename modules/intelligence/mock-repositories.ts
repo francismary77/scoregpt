@@ -1,0 +1,6 @@
+import type { CompetitionRepository, FixtureRepository, PredictionRepository, ResultsRepository } from "./repositories";
+import { competitions, fixtures, predictions, results } from "./mock-data";
+export class MockFixtureRepository implements FixtureRepository { getFeaturedFixture(){return fixtures.find(item=>item.status==="scheduled")??null} getFixturesForDate(){return fixtures.filter(item=>item.status==="scheduled")} getFixtureById(id:string){return fixtures.find(item=>item.id===id)??null} getFixturesByCompetition(id:string){return fixtures.filter(item=>item.competitionId===id)} }
+export class MockPredictionRepository implements PredictionRepository { getPredictionForFixture(id:string){return predictions.find(item=>item.fixtureId===id)??null} getFeaturedPrediction(){return predictions.find(item=>item.status==="pending")??null} getPredictionsForDate(){return predictions.filter(item=>item.status==="pending")} }
+export class MockCompetitionRepository implements CompetitionRepository { getSupportedCompetitions(){return competitions} getCompetitionById(id:string){return competitions.find(item=>item.id===id)??null} }
+export class MockResultsRepository implements ResultsRepository { getRecentResults(limit=8){return results.slice(0,limit)} getResultByPredictionId(id:string){return results.find(item=>item.predictionId===id)??null} }

@@ -1,4 +1,4 @@
-import type { MatchPreview } from "@/lib/types";
+interface MatchPreview { id:string; competition:string; home:string; away:string; kickoff:string; insight:string; confidence:number; risk:"Low"|"Medium"|"High" }
 export function MatchCard({ match }: { match: MatchPreview }) {
   const initials = (team: string) => team.split(" ").map((word) => word[0]).join("").slice(0, 2);
   return <article className="match-card">

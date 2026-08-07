@@ -1,0 +1,1 @@
+export function DisplayState({type="empty",title,copy}:{type?:"loading"|"empty"|"unavailable"|"disabled";title:string;copy:string}){return <div className={`display-state ${type}`} role={type==="loading"?"status":"note"}><span aria-hidden="true">{type==="loading"?"◌":type==="unavailable"?"!":"○"}</span><h2>{title}</h2><p>{copy}</p></div>}
