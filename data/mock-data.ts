@@ -13,6 +13,13 @@ export const matches: MatchPreview[] = [
   { id: "vil-bet", competition: "La Liga", home: "Villarreal", away: "Real Betis", kickoff: "20:00 WAT", insight: "Both teams to score", confidence: 72, risk: "Medium" },
 ];
 
+export const matchTicker = [
+  { competition: "Premier League", fixture: "Arsenal vs Chelsea", kickoff: "16:30" },
+  { competition: "Serie A", fixture: "Inter vs Atalanta", kickoff: "19:45" },
+  { competition: "La Liga", fixture: "Villarreal vs Real Betis", kickoff: "20:00" },
+  { competition: "Champions League", fixture: "Barcelona vs Bayern", kickoff: "21:00" },
+];
+
 export const results: MatchResult[] = [
   { fixture: "Liverpool vs Fulham", market: "Over 1.5 goals", score: "3–1", state: "Won" },
   { fixture: "Napoli vs Roma", market: "Home win", score: "1–1", state: "Lost" },

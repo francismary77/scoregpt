@@ -5,9 +5,11 @@ import { SectionHeading } from "@/components/section-heading";
 import { MatchCard } from "@/components/match-card";
 import { AnnouncementBar } from "@/components/announcement-bar";
 import { BusinessOffer } from "@/components/business-offer";
+import { MatchTicker } from "@/components/match-ticker";
+import { IntelligenceFlow } from "@/components/intelligence-flow";
 import { brand } from "@/config/brand";
 import { businessMarketing } from "@/config/marketing";
-import { matches, metrics, results } from "@/data/mock-data";
+import { matches, matchTicker, metrics, results } from "@/data/mock-data";
 
 const benefits = [
   ["01", "Data, not guesswork", "Current match data and statistical signals shape every analysis."],
@@ -21,7 +23,7 @@ export default function Home() {
     <SiteHeader />
     <main>
       {brand.businessSalesMarketingEnabled && businessMarketing.announcementsEnabled && <AnnouncementBar announcements={businessMarketing.announcements} />}
-      <section className="hero"><div className="orb orb-one" /><div className="orb orb-two" /><div className="grid-lines" /><div className="container hero-grid">
+      <section className="hero"><div className="orb orb-one" /><div className="orb orb-two" /><div className="grid-lines" /><div className="pitch-lines" aria-hidden="true"><i/><i/><i/><i/><i/></div><div className="data-network" aria-hidden="true"><i/><i/><i/><i/><i/><i/></div><div className="scan-light" aria-hidden="true"/><div className="container hero-grid">
         <div className="hero-copy"><span className="eyebrow"><i /> AI-powered football predictions</span><h1>Smarter Football Predictions.<br/><em>Powered by AI.</em></h1><p>{brand.siteName} combines current football data, statistical analysis and AI reasoning to deliver smarter match predictions with clear confidence, risk and reasoning.</p><div className="hero-actions"><Link className="button" href="/register">Try Free Prediction <span>→</span></Link><Link className="button button-ghost" href="/matches">Explore today&apos;s matches</Link></div>{brand.businessSalesMarketingEnabled && <Link href="/sales" className="hero-business-link">Want your own platform? <span>→</span></Link>}<div className="trust-line"><span className="avatars">◉ ◉ ◉</span><span><b>Built for clarity</b><small>No guaranteed outcomes. Just better-informed decisions.</small></span></div></div>
         <div className="hero-card-wrap"><div className="hero-card-glow"/><article className="analysis-card"><div className="analysis-head"><span><i /> Featured AI intelligence</span><b>LIVE DEMO</b></div><div className="league-row"><span>Premier League</span><span>Today · 16:30 WAT</span></div><div className="fixture"><div><span className="team-badge red">A</span><strong>Arsenal</strong><small>Home</small></div><span className="versus">VS</span><div><span className="team-badge blue">C</span><strong>Chelsea</strong><small>Away</small></div></div><div className="analysis-stats"><div><small>AI confidence</small><b className="accent">78%</b></div><div><small>Risk level</small><b><span className="risk-dot"/> Medium</b></div><div><small>Suggested market</small><b>Home or draw</b></div></div><div className="reasoning"><div><span>✦</span><b>AI reasoning</b></div><p>Arsenal&apos;s recent home form and defensive consistency create an edge. Chelsea remain dangerous in transition, which keeps the risk profile balanced.</p></div><Link href="/matches" className="analysis-link">View full analysis <span>→</span></Link><p className="demo-note">Demonstration data · Not betting advice</p></article></div>
       </div></section>
@@ -30,7 +32,11 @@ export default function Home() {
 
       {brand.businessSalesMarketingEnabled && <BusinessOffer />}
 
+      <MatchTicker matches={matchTicker} />
+
       <section className="section matches-section" id="today-matches"><div className="container"><div className="heading-row"><SectionHeading eyebrow="Today's slate" title="Predictions for today’s matches" copy="A concise view of the fixtures our intelligence engine is currently analysing."/><Link href="/matches" className="text-link">View all matches →</Link></div><div className="cards-grid">{matches.map(m=><MatchCard key={m.id} match={m}/>)}</div></div></section>
+
+      <IntelligenceFlow />
 
       <section className="section process-section"><div className="container"><SectionHeading eyebrow="How it works" title="From raw data to clear intelligence" copy="A rigorous process designed to make football analysis easier to understand." align="center"/><div className="process-grid">{[["01","We pull football data","Form, fixtures, team performance and relevant match signals."],["02","Our engine analyses the match","Statistical patterns are evaluated and interpreted with AI."],["03","We publish transparent insight","You see the market, confidence, risk and reasoning together."]].map(([n,t,c],i)=><article key={n}><span className="step-icon">{i===0?"⌁":i===1?"✦":"◎"}</span><small>Step {n}</small><h3>{t}</h3><p>{c}</p>{i<2&&<b className="step-arrow">→</b>}</article>)}</div></div></section>
 

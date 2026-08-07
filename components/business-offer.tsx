@@ -23,6 +23,10 @@ export function BusinessOffer() {
           </div>
         </div>
         <div className="business-detail">
+          <div className="platform-preview" aria-label="Illustrative branded football platform preview">
+            <div className="preview-top"><span><i>P</i> PitchIQ</span><small>Brand preview</small></div>
+            <div className="preview-body"><div className="preview-sidebar"><i/><i/><i/></div><div className="preview-content"><span>Today&apos;s intelligence</span><div className="preview-fixture"><b>City</b><em>VS</em><b>United</b></div><div className="preview-meter"><i/></div><div className="preview-stats"><span>AI confidence <b>81%</b></span><span>Risk <b>Low</b></span></div></div></div>
+          </div>
           <div className="business-points"><span>Your brand.</span><span>Your domain.</span><span>Your subscribers.</span><span>Your pricing.</span></div>
           <ul>{capabilities.map((capability) => <li key={capability}>{capability}</li>)}</ul>
         </div>
