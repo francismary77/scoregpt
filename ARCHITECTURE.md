@@ -69,3 +69,15 @@ The mock provider calculates reproducible confidence and risk from structured fo
 Confidence uses four provider-neutral levels: Very High, High, Medium and Low. Risk remains Low, Medium or High and includes both structured factors and an explanation. These values are consumed by shared visual components across the report and homepage.
 
 There are no prompts, model SDKs, network calls or environment requirements in the mock provider. A future `OpenAIProvider` implements the same `AIIntelligenceProvider` contract and returns the same `IntelligenceReport` shape. The service, report page, homepage and business logic require no corresponding rewrite.
+
+## Batch 3D payment and billing foundation
+
+Billing follows the same layered structure: checkout/admin UI → `PaymentService` and `PlatformOrderService` → `PaymentProvider` and `PlatformOrderRepository` contracts → configured adapters and mock storage. Provider selection occurs in the billing composition root using central payment configuration.
+
+The provider-neutral domain models payment methods, money, platform setup orders, invoices, transactions, subscriptions, billing intervals and tenant payment settings. Order status supports Pending Payment, Payment Submitted, Payment Verified, Payment Rejected, Cancelled and Completed. Monthly, yearly and lifetime membership billing intervals are modelled but not processed.
+
+`ManualBankTransferProvider` is the currently enabled business setup method. It creates a pending-payment instruction result and never claims automated verification. Official business account details live only in payment configuration and are rendered only in checkout. The WhatsApp handoff prepares a package-specific message; customers attach their receipt manually and FABRO TECH LIMITED verifies it outside the application.
+
+`PaystackPaymentProvider`, `FlutterwavePaymentProvider` and `StripePaymentProvider` implement the provider contract as isolated placeholders and throw `Not implemented.`. They contain no SDKs, keys or network requests. Stripe is not offered in the Nigerian checkout method selector. A later provider becomes active by configuration and implements the same create, verify, cancel and refund methods; checkout does not require a rewrite.
+
+`MockPlatformOrderRepository` supplies demonstration orders for the admin-only review screen. Approval, rejection and cancellation controls change local presentation state only. There is no database, durable order, transaction verification, webhook or real administrative payment action in this batch.

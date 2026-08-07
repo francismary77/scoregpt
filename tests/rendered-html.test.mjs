@@ -9,7 +9,7 @@ async function render(path = "/") {
   return worker.fetch(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-for (const [path, expected] of [["/", "Smarter Football Predictions"], ["/matches", "Match Centre"], ["/results", "Public Results Centre"], ["/matches/ars-che-demo", "Recommended market"], ["/register", "Create your free account"], ["/login", "Demo access"], ["/forgot-password", "Reset your password"], ["/dashboard", "Checking your session"], ["/account", "Checking your session"], ["/admin", "Checking your session"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
+for (const [path, expected] of [["/", "Smarter Football Predictions"], ["/matches", "Match Centre"], ["/results", "Public Results Centre"], ["/matches/ars-che-demo", "Recommended market"], ["/register", "Create your free account"], ["/login", "Demo access"], ["/forgot-password", "Reset your password"], ["/dashboard", "Checking your session"], ["/account", "Checking your session"], ["/admin", "Checking your session"], ["/admin/orders", "Checking your session"], ["/checkout/platform/launch", "Pay by Bank Transfer"], ["/checkout/platform/business", "Pay by Bank Transfer"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
   test(`server renders ${path}`, async () => { const response = await render(path); assert.equal(response.status, 200); assert.match(await response.text(), new RegExp(expected, "i")); });
 }
 
@@ -78,4 +78,22 @@ test("mock AI provider is provider-compatible, deterministic and offline", async
   assert.match(provider, /implements AIIntelligenceProvider/); assert.match(provider, /marketsToAvoid/); assert.match(provider, /tacticalOutlook/);
   assert.doesNotMatch(provider, /fetch\(|OpenAI|process\.env|prompt/i); assert.match(services, /aiProvider\.generateMatchIntelligence/);
   assert.match(application, /new MockAIIntelligenceProvider/); assert.match(domain, /"very-high"\|"high"\|"medium"\|"low"/);
+});
+
+test("Batch 3D checkout displays configured transfer facts and remains pending", async () => {
+  const launch = await (await render("/checkout/platform/launch")).text(); const business = await (await render("/checkout/platform/business")).text();
+  for (const html of [launch,business]) { assert.match(html,/FABRO TECH LIMITED/); assert.match(html,/GTBank/); assert.match(html,/0603685542/); assert.match(html,/Pending Payment/); assert.match(html,/Send Payment Receipt on WhatsApp/); assert.match(html,/Attach your receipt manually/i); }
+  assert.match(launch,/₦350,000/); assert.match(business,/₦750,000/); assert.match(decodeURIComponent(launch),/I have made payment for the ScoreGPT Launch Edition/);
+});
+
+test("billing providers are swappable placeholders with no live gateway calls", async () => {
+  const [domain, providers, services, config, checkout] = await Promise.all([
+    readFile(new URL("../modules/billing/domain.ts", import.meta.url),"utf8"), readFile(new URL("../modules/billing/providers.ts", import.meta.url),"utf8"),
+    readFile(new URL("../modules/billing/services.ts", import.meta.url),"utf8"), readFile(new URL("../config/payment.ts", import.meta.url),"utf8"),
+    readFile(new URL("../app/checkout/platform/[packageId]/page.tsx", import.meta.url),"utf8"),
+  ]);
+  assert.match(domain,/BillingInterval="monthly"\|"yearly"\|"lifetime"/); assert.match(domain,/TenantPaymentSettings/); assert.match(domain,/payment-submitted/);
+  assert.match(providers,/interface PaymentProvider/); assert.match(providers,/class PaystackPaymentProvider/); assert.match(providers,/class FlutterwavePaymentProvider/); assert.match(providers,/class StripePaymentProvider/);
+  assert.match(providers,/Not implemented\./); assert.doesNotMatch(providers,/fetch\(|process\.env|api[_-]?key/i); assert.match(services,/activeProviderId/);
+  assert.match(config,/activeProvider:"manual-bank"/); assert.doesNotMatch(checkout,/0603685542/);
 });
