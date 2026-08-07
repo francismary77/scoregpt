@@ -1,5 +1,9 @@
 # ScoreGPT
 
+## Supabase development foundation
+
+Batch 4A database setup is documented in [DATABASE.md](./DATABASE.md). The application remains in mock persistence mode by default. Copy `.env.example` to `.env.local` only when working with the ScoreGPT Development Supabase project; never commit real values.
+
 Foundation Batch 1 for ScoreGPT.com.ng, an AI-powered football intelligence platform by FABRO TECH LIMITED.
 
 ## Run locally

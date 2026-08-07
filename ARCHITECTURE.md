@@ -81,3 +81,11 @@ The provider-neutral domain models payment methods, money, platform setup orders
 `PaystackPaymentProvider`, `FlutterwavePaymentProvider` and `StripePaymentProvider` implement the provider contract as isolated placeholders and throw `Not implemented.`. They contain no SDKs, keys or network requests. Stripe is not offered in the Nigerian checkout method selector. A later provider becomes active by configuration and implements the same create, verify, cancel and refund methods; checkout does not require a rewrite.
 
 `MockPlatformOrderRepository` supplies demonstration orders for the admin-only review screen. Approval, rejection and cancellation controls change local presentation state only. There is no database, durable order, transaction verification, webhook or real administrative payment action in this batch.
+
+## Batch 4A Supabase database foundation
+
+The first durable persistence layer is versioned in `supabase/migrations`. It introduces provider-neutral football cache, stored intelligence, membership, usage, order and transaction records with UUID relationships, freshness timestamps and RLS on every table. Development seed records are explicitly tagged `is_demo` and use the `scoregpt-demo` provider.
+
+Supabase clients live under `lib/supabase`; repository adapters live under `modules/persistence`. UI modules continue to consume services and repository contracts rather than querying tables. `createPersistenceRepositories()` defaults to existing mocks and selects Supabase only when configuration explicitly requests it and a client is supplied, so an unavailable Development project cannot break the public review site.
+
+This batch does not activate the new persistence path in live authentication, intelligence or billing flows. See `DATABASE.md` for schema, policies, migration operations, environment safety and the cache freshness model.

@@ -6,6 +6,7 @@ export const featureFlags = {
   paymentsEnabled: false,
   telegramEnabled: false,
   businessEditionModulesEnabled: false,
+  useSupabasePersistence: process.env.NEXT_PUBLIC_DATA_REPOSITORY === "supabase",
 } as const;
 
 export const applicationConfig = {
