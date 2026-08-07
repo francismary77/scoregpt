@@ -31,3 +31,15 @@ The homepage uses `getHomepageFootballData()`. `/matches` uses `getMatchCentreDa
 ## Safety
 
 Every relevant record contains `sourceType`, `isDemo` and a source label. Live-data and AI flags remain disabled. The application requires no environment variables or external requests.
+
+## Batch 2C interactive experience
+
+The Match Centre remains a server-composed page. `getMatchCentreData()` resolves fixtures, predictions, competitions and team form through services, then passes serializable provider-neutral view data to the small `MatchCentre` client island. Search, competition, status and date filtering happen locally against that prepared data. A future repository can honor the same date and competition contracts before the client receives the collection.
+
+The match detail route asks `IntelligenceService` for one `IntelligenceReport`. Its reusable visuals—confidence gauge, probability bars, risk indicator, team-form strip, mini statistic and freshness badge—accept domain values rather than provider payloads or brand constants. Native browser sharing is isolated in `ShareReport`; all other report composition remains server-rendered. Route-level loading and not-found boundaries provide future API-safe states without exposing internal errors.
+
+The Results Centre uses `getResultsCentreData()` to join public result records to their prediction and competition through services. Its client island performs status, team, competition and publication-date filtering. Demo performance metrics are calculated from the same service-composed records and are explicitly labelled as demonstration data; losses and void records remain visible.
+
+The homepage continues to consume `getHomepageFootballData()` from the composition root for featured intelligence, the match ticker, prediction cards and recent results. No UI component imports the mock dataset.
+
+Future premium presentation can be added as provider-neutral metadata on an intelligence report or report section, then interpreted by a dedicated entitlement boundary. Authentication and real entitlement enforcement should sit outside the visual components so neither the report UI nor provider adapters require rewrites.

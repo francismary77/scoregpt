@@ -17,3 +17,22 @@ test("intelligence records and UI retain demo safety markers", async () => {
   const [data, domain, application] = await Promise.all([readFile(new URL("../modules/intelligence/mock-data.ts", import.meta.url), "utf8"), readFile(new URL("../modules/intelligence/domain.ts", import.meta.url), "utf8"), readFile(new URL("../modules/intelligence/application.ts", import.meta.url), "utf8")]);
   assert.match(data, /sourceType:\s*"mock"/); assert.match(data, /isDemo:\s*true/); assert.match(domain, /value < 0 \|\| value > 100/); assert.match(application, /MockFixtureRepository/);
 });
+
+test("Batch 2C keeps interactive filters in client islands and data composition in services", async () => {
+  const [matches, results, application, report] = await Promise.all([
+    readFile(new URL("../components/match-centre.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/results-centre.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../modules/intelligence/application.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/matches/[fixtureId]/page.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(matches, /Search teams/); assert.match(matches, /Match status/); assert.match(matches, /fixture\.status===status/);
+  assert.match(results, /result\.fixtureLabel\.toLowerCase/); assert.match(results, /result\.outcome===status/);
+  assert.match(application, /getResultsCentreData/); assert.doesNotMatch(matches, /mock-data/); assert.doesNotMatch(results, /mock-data/);
+  assert.match(report, /Why this prediction/); assert.match(report, /ShareReport/); assert.match(report, /Team comparison/);
+});
+
+test("unknown fixture renders the safe not-found experience", async () => {
+  const response = await render("/matches/unknown-fixture");
+  assert.equal(response.status, 404);
+  assert.match(await response.text(), /Fixture not found/i);
+});

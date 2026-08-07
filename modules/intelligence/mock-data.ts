@@ -42,7 +42,7 @@ export const predictions: Prediction[] = [
 ];
 
 export const forms: TeamForm[] = Object.values(teams).map((item,index)=>({teamId:item.id,sequence:index%2?["W","D","W","L","W"]:["W","W","D","W","L"],summary:index%2?"Three wins in five demo matches":"Strong recent demo form"}));
-export const statistics: Record<string, MatchStatistics> = Object.fromEntries(fixtures.map((fixture,index)=>[fixture.id,{headToHeadSummary:index%2?"Balanced recent demonstration meetings":"Home side holds a narrow demonstration edge",possessionHome:52,possessionAway:48,shotsHome:13,shotsAway:10}]));
+export const statistics: Record<string, MatchStatistics> = Object.fromEntries(fixtures.map((fixture,index)=>[fixture.id,{headToHeadSummary:index%2?"Balanced recent demonstration meetings, with neither side consistently controlling the matchup.":"The home side holds a narrow edge across the recent demonstration meetings.",possessionHome:52,possessionAway:48,shotsHome:13,shotsAway:10,home:{goalsScored:9+index,goalsConceded:4,wins:3,draws:1,losses:1,cleanSheets:2},away:{goalsScored:7+index,goalsConceded:6,wins:2,draws:2,losses:1,cleanSheets:1}}]));
 export const results: ResultRecord[] = [
   {id:"result-1",predictionId:"pred-liv-ful",fixtureId:"liv-ful-demo",competitionId:"premier-league",fixtureLabel:"Liverpool vs Fulham",marketLabel:"Over 1.5 goals",scoreLabel:"3–1",outcome:"won",publishedAt:"2026-08-02T17:00:00Z",source},
   {id:"result-2",predictionId:"pred-nap-rom",fixtureId:"nap-rom-demo",competitionId:"serie-a",fixtureLabel:"Napoli vs Roma",marketLabel:"Home win",scoreLabel:"1–1",outcome:"lost",publishedAt:"2026-08-02T21:00:00Z",source},

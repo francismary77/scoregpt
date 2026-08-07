@@ -10,7 +10,8 @@ export interface Competition { id: string; name: string; shortName: string; coun
 export interface Team { id: string; name: string; shortName: string; badgeUrl?: string; country: string }
 export interface MatchScore { home: number | null; away: number | null }
 export interface TeamForm { teamId: string; sequence: Array<"W" | "D" | "L">; summary: string }
-export interface MatchStatistics { possessionHome?: number; possessionAway?: number; shotsHome?: number; shotsAway?: number; headToHeadSummary: string }
+export interface TeamComparisonStats { goalsScored:number; goalsConceded:number; wins:number; draws:number; losses:number; cleanSheets:number }
+export interface MatchStatistics { possessionHome?: number; possessionAway?: number; shotsHome?: number; shotsAway?: number; home?:TeamComparisonStats; away?:TeamComparisonStats; headToHeadSummary: string }
 export interface Fixture { id: string; competitionId: string; homeTeam: Team; awayTeam: Team; kickoff: string; displayKickoff: string; status: MatchStatus; score: MatchScore; venue?: string; source: SourceMetadata }
 export interface ConfidenceScore { value: number; label: "low" | "moderate" | "high" }
 export interface PredictionMarket { id: string; label: string; outcome: PredictionOutcome }

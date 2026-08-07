@@ -1,0 +1,1 @@
+import {SiteHeader} from "@/components/site-header";export default function Loading(){return <><SiteHeader/><main className="results-centre-page"><section className="inner-hero skeleton-hero"><div className="container"><i/><i/><i/></div></section><section className="section"><div className="container skeleton-list">{[1,2,3,4].map(item=><i key={item}/>)}</div></section></main></>}

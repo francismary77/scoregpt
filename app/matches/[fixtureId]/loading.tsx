@@ -1,0 +1,1 @@
+import {SiteHeader} from "@/components/site-header";export default function Loading(){return <><SiteHeader/><main className="report-page"><section className="report-hero skeleton-report"><div className="container"><i/><i/><i/></div></section><section className="section"><div className="container skeleton-report-grid"><div/><div/></div></section></main></>}
