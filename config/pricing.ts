@@ -13,6 +13,9 @@ export const businessPackages = [
     standardPrice: 500000,
     founderPrice: 350000,
     platformCareMonthly: 12000,
+    typicalDelivery: "7–14 Working Days",
+    deliveryNote: "Delivery begins after the initial payment and all required branding/content materials have been received.",
+    whatsappMessage: "Hello FABRO TECH LIMITED, I am interested in the ScoreGPT Launch Edition. I have a few questions before proceeding.",
     attribution: true,
     features: [
       "Professionally branded AI football prediction website",
@@ -38,6 +41,9 @@ export const businessPackages = [
     standardPrice: 1000000,
     founderPrice: 750000,
     platformCareMonthly: 18000,
+    typicalDelivery: "14–21 Working Days",
+    deliveryNote: "Business Edition delivery depends on the selected modules, branding requirements and any agreed custom configuration.",
+    whatsappMessage: "Hello FABRO TECH LIMITED, I am interested in the ScoreGPT Business Edition. I would like to discuss my platform requirements.",
     attribution: false,
     features: [
       "Everything included in Launch Edition",
@@ -58,6 +64,12 @@ export const platformCare = {
   startsAfterMonths: 12,
   includes: ["Managed hosting", "Football data access", "AI service usage within fair-use limits", "Security updates", "Backups", "Software updates", "Technical support", "Minor platform improvements"],
   exclusions: "Major redesigns, custom one-off features, third-party integrations and unusually heavy usage may require separate quotations.",
+} as const;
+
+export const commercialJourney = {
+  generalWhatsAppMessage:"Hello FABRO TECH LIMITED, I am interested in launching my own AI Football Prediction Platform and I have a few questions.",
+  deliveryDisclaimer:"Delivery timelines may be affected by delays in receiving client materials, domain/DNS changes, third-party approvals, payment-provider approvals or additional custom requirements.",
+  clientRequirements:["Brand or platform name","Logo","Preferred brand colours","Domain details, if already owned","Business contact information","Preferred subscription pricing","Social links","Package-specific requirements"],
 } as const;
 
 export const consumerPlans = [

@@ -51,3 +51,16 @@ test("unknown fixture renders the safe not-found experience", async () => {
   assert.equal(response.status, 404);
   assert.match(await response.text(), /Fixture not found/i);
 });
+
+test("Batch 3A sales page preserves approved commercial facts and WhatsApp journeys", async () => {
+  const response = await render("/sales"); const html = await response.text();
+  for (const value of ["7–14 Working Days", "14–21 Working Days", "₦350,000", "₦750,000", "₦12,000/month", "₦18,000/month", "+234 810 501 6931", "Have questions before you decide?", "What We Need From You", "How long does it take to launch my platform?"]) assert.match(html, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+  assert.match(html, /https:\/\/wa\.me\/2348105016931\?text=/);
+  assert.match(decodeURIComponent(html), /Hello FABRO TECH LIMITED, I am interested in the ScoreGPT Launch Edition/);
+  assert.match(decodeURIComponent(html), /Hello FABRO TECH LIMITED, I am interested in the ScoreGPT Business Edition/);
+});
+
+test("contact page makes WhatsApp the primary platform-sales channel", async () => {
+  const response = await render("/contact"); const html = await response.text();
+  assert.match(html, /Platform Sales/); assert.match(html, /Ask on WhatsApp/); assert.match(html, /2348105016931/);
+});

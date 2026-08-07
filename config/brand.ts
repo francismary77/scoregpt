@@ -9,7 +9,8 @@ export const brand = {
   primaryAccent: "#19E6C3",
   secondaryAccent: "#2DA8FF",
   supportEmail: "hello@scoregpt.com.ng",
-  contactPhone: "+234 000 000 0000",
+  contactPhone: "+234 810 501 6931",
+  whatsappNumber: "2348105016931",
   socialLinks: { x: "#", instagram: "#", facebook: "#" },
   salesPageUrl: "/sales",
   poweredByScoreGPT: false,
@@ -17,5 +18,7 @@ export const brand = {
   defaultCountry: "Nigeria",
   businessSalesMarketingEnabled: true,
 } as const;
+
+export function whatsappUrl(message:string){return `https://wa.me/${brand.whatsappNumber}?text=${encodeURIComponent(message)}`}
 
 export type BrandConfig = typeof brand;
