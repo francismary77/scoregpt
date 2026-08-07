@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SectionHeading } from "@/components/section-heading";
@@ -17,6 +18,8 @@ const benefits = [
   ["03", "Calibrated confidence", "Every insight includes confidence and risk, so uncertainty stays visible."],
   ["04", "A public record", "Won, lost, and void outcomes remain visible to keep performance accountable."],
 ];
+
+export const metadata: Metadata = { title: "Smarter Football Predictions Powered by AI", description: "Explore transparent AI football predictions with clear confidence, risk and reasoning from ScoreGPT." };
 
 export default function Home() {
   return <div className="page-shell">

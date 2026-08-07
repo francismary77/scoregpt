@@ -1,2 +1,11 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
-export default function Page(){return <PlaceholderPage eyebrow="Membership" title="Simple access. Deeper intelligence." copy="Consumer membership details will be finalized in a future foundation batch."/>}
+import type { Metadata } from "next";
+import Link from "next/link";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { SectionHeading } from "@/components/section-heading";
+import { brand } from "@/config/brand";
+import { consumerPlans, formatNaira } from "@/config/pricing";
+
+export const metadata: Metadata = { title: "Membership Pricing", description: `Explore free and Premium ${brand.siteName} AI football prediction membership.` };
+
+export default function PricingPage(){return <><SiteHeader/><main className="pricing-page"><section className="inner-hero"><div className="orb orb-two"/><div className="container"><span className="eyebrow">Consumer membership</span><h1>Start free. Unlock deeper football intelligence.</h1><p>Choose simple access to transparent AI football predictions. No guaranteed outcomes—just clearer confidence, risk and reasoning.</p></div></section><section className="section"><div className="container"><div className="consumer-plan-grid">{consumerPlans.map((plan,index)=><article key={plan.id} className={index===1?"consumer-plan premium-consumer-plan":"consumer-plan"}><div><span>{plan.name}</span>{"workingPrice" in plan&&plan.workingPrice&&<em>Working price</em>}</div><h2>{plan.priceMonthly===0?"Free":<>{formatNaira(plan.priceMonthly)}<small>/month</small></>}</h2><p>{plan.description}</p><ul>{plan.features.map(feature=><li key={feature}>✓ {feature}</li>)}</ul><Link className={index===1?"button":"button button-ghost"} href={plan.href}>{plan.cta} <span>→</span></Link></article>)}</div><p className="pricing-disclaimer">Premium pricing remains configurable and will be confirmed before paid subscriptions launch. Telegram delivery and other future premium modules are not included yet.</p></div></section><section className="pricing-explainer"><div className="container"><SectionHeading eyebrow="Simple by design" title="Free access plus one meaningful paid plan" copy="The membership architecture can support additional tiers later, but ScoreGPT V1 avoids multiple speculative plans without genuinely different functionality."/><Link href="/matches" className="text-link">Explore today&apos;s matches →</Link></div></section></main><SiteFooter/></>}
