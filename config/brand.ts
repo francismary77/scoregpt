@@ -15,6 +15,7 @@ export const brand = {
   poweredByScoreGPT: false,
   currency: "NGN",
   defaultCountry: "Nigeria",
+  businessSalesMarketingEnabled: true,
 } as const;
 
 export type BrandConfig = typeof brand;
