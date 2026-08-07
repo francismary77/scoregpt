@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { brand } from "@/config/brand";
+import { AuthStateProvider } from "@/components/auth-state-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${brand.domain.toLowerCase()}`),
@@ -16,5 +17,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><AuthStateProvider>{children}</AuthStateProvider></body></html>;
 }

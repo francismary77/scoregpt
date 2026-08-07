@@ -43,3 +43,19 @@ The Results Centre uses `getResultsCentreData()` to join public result records t
 The homepage continues to consume `getHomepageFootballData()` from the composition root for featured intelligence, the match ticker, prediction cards and recent results. No UI component imports the mock dataset.
 
 Future premium presentation can be added as provider-neutral metadata on an intelligence report or report section, then interpreted by a dedicated entitlement boundary. Authentication and real entitlement enforcement should sit outside the visual components so neither the report UI nor provider adapters require rewrites.
+
+## Batch 2D authentication and membership foundation
+
+The account module follows the existing composition pattern: UI → `AuthService`, `MembershipService` and `PredictionEntitlementService` → provider/repository contracts → mock implementations. `modules/account/application.ts` is the composition root. Pages and components never import mock users or membership records directly.
+
+`AuthProvider` defines current-user, session, sign-in, registration, sign-out, password-reset and password-update boundaries. `MockAuthProvider` stores only a safe demo user identifier in `sessionStorage`; it stores no password, token or JWT. Registration creates a temporary free-member presentation state, and explicit Demo Access selects Free, Premium or Admin review identities. All state resets when the browser session ends and is not a real user record.
+
+`MembershipRepository` resolves the provider-neutral Free or Premium membership and status. `MembershipService` supplies display-ready state and answers Premium access. A future database repository can replace `MockMembershipRepository` without changing pages. Payment code is intentionally absent; a future Paystack webhook or billing integration will update durable membership records outside `MembershipService`.
+
+`PredictionUsageRepository` tracks unique fixture views temporarily. The configured V1 mock strategy is a lifetime welcome allowance within the current temporary browser session. The allowance value lives in `entitlementConfig`, never in report components. `PredictionEntitlementService` returns one `PredictionAccessDecision` covering guest authentication requirements, remaining access, exhausted allowances, Premium access and upgrade requirements.
+
+Predictions can carry `ContentAccessLevel` metadata: `public`, `registered` or `premium`. `ReportAccessGate` consumes the entitlement decision consistently. The featured Arsenal demonstration remains public, selected reports demonstrate free-member unlocking, and Premium-marked reports demonstrate the upgrade path.
+
+`ProtectedView` is the reusable mock route boundary for `/dashboard`, `/account` and `/admin`, including admin-role authorization. Because this batch deliberately has no secure server session, this is presentation-layer protection only. When live authentication arrives, it must be replaced by server-side `requireAuth()`/`requireMembership()` checks backed by provider-managed sessions.
+
+The future migration is deliberately narrow: `MockAuthProvider` → `SupabaseAuthProvider`, `MockMembershipRepository` → `SupabaseMembershipRepository`, and `MockPredictionUsageRepository` → `SupabasePredictionUsageRepository`. Secure session cookies and server-side authorization replace temporary browser state; pages, forms, membership UI and entitlement decision consumers retain the same contracts.

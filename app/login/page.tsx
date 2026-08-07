@@ -1,2 +1,1 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
-export default function Page(){return <PlaceholderPage eyebrow="Member access" title="Welcome back." copy="Authentication is intentionally deferred until a later batch."/>}
+import type{Metadata}from"next";import{AuthShell}from"@/components/auth-shell";import{LoginForm}from"@/components/auth-forms";export const metadata:Metadata={title:"Member Login",description:"Access your football intelligence member dashboard."};export default function Page(){return <AuthShell eyebrow="Member access" title="Welcome back." copy="Continue to your prediction access, saved demonstration activity and membership overview."><LoginForm/></AuthShell>}

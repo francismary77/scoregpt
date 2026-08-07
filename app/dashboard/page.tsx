@@ -1,2 +1,1 @@
-import { PlaceholderPage } from "@/components/placeholder-page";
-export default function Page(){return <PlaceholderPage eyebrow="Member workspace" title="Your intelligence dashboard." copy="The personalized dashboard is scaffolded and ready for the membership phase."/>}
+import type{Metadata}from"next";import{SiteHeader}from"@/components/site-header";import{SiteFooter}from"@/components/site-footer";import{DashboardView}from"@/components/member-pages";export const metadata:Metadata={title:"Member Dashboard"};export default function Page(){return <><SiteHeader/><main className="member-page"><div className="container"><DashboardView/></div></main><SiteFooter/></>}

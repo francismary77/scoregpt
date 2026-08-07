@@ -16,7 +16,7 @@ export interface Fixture { id: string; competitionId: string; homeTeam: Team; aw
 export interface ConfidenceScore { value: number; label: "low" | "moderate" | "high" }
 export interface PredictionMarket { id: string; label: string; outcome: PredictionOutcome }
 export interface AIReasoning { summary: string; bullets: string[]; supportingFactors: string[] }
-export interface Prediction { id: string; fixtureId: string; market: PredictionMarket; confidence: ConfidenceScore; risk: RiskLevel; status: PredictionStatus; reasoning: AIReasoning; generatedAt: string; source: SourceMetadata }
+export interface Prediction { id: string; fixtureId: string; market: PredictionMarket; confidence: ConfidenceScore; risk: RiskLevel; status: PredictionStatus; reasoning: AIReasoning; generatedAt: string; source: SourceMetadata; accessLevel?:import("@/modules/account/domain").ContentAccessLevel }
 export interface IntelligenceReport { id: string; fixture: Fixture; competition: Competition; prediction: Prediction; homeForm: TeamForm; awayForm: TeamForm; statistics: MatchStatistics; shortAnalysis: string; generatedAt: string; dataUpdatedAt: string; source: SourceMetadata }
 export interface ResultRecord { id: string; predictionId: string; fixtureId: string; competitionId: string; fixtureLabel: string; marketLabel: string; scoreLabel: string; outcome: PredictionStatus; publishedAt: string; source: SourceMetadata }
 
