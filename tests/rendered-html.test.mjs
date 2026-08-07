@@ -9,7 +9,7 @@ async function render(path = "/") {
   return worker.fetch(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-for (const [path, expected] of [["/", "Smarter Football Predictions"], ["/matches", "Match Centre"], ["/results", "Public Results Centre"], ["/matches/ars-che-demo", "Home win or draw"], ["/register", "Create your free account"], ["/login", "Demo access"], ["/forgot-password", "Reset your password"], ["/dashboard", "Checking your session"], ["/account", "Checking your session"], ["/admin", "Checking your session"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
+for (const [path, expected] of [["/", "Smarter Football Predictions"], ["/matches", "Match Centre"], ["/results", "Public Results Centre"], ["/matches/ars-che-demo", "Recommended market"], ["/register", "Create your free account"], ["/login", "Demo access"], ["/forgot-password", "Reset your password"], ["/dashboard", "Checking your session"], ["/account", "Checking your session"], ["/admin", "Checking your session"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
   test(`server renders ${path}`, async () => { const response = await render(path); assert.equal(response.status, 200); assert.match(await response.text(), new RegExp(expected, "i")); });
 }
 
@@ -63,4 +63,19 @@ test("Batch 3A sales page preserves approved commercial facts and WhatsApp journ
 test("contact page makes WhatsApp the primary platform-sales channel", async () => {
   const response = await render("/contact"); const html = await response.text();
   assert.match(html, /Platform Sales/); assert.match(html, /Ask on WhatsApp/); assert.match(html, /2348105016931/);
+});
+
+test("Batch 3C report exposes deterministic multi-market AI intelligence", async () => {
+  const response = await render("/matches/ars-che-demo"); const html = await response.text();
+  for (const value of ["Recommended market", "Markets analysed", "Match Winner", "Double Chance", "Both Teams To Score", "Over 2.5 Goals", "Tactical outlook", "Expected match flow", "Confidence explanation", "Risk explanation", "Markets to avoid", "AI-assisted football intelligence"]) assert.match(html, new RegExp(value, "i"));
+});
+
+test("mock AI provider is provider-compatible, deterministic and offline", async () => {
+  const [provider, services, application, domain] = await Promise.all([
+    readFile(new URL("../modules/intelligence/mock-ai-provider.ts", import.meta.url), "utf8"), readFile(new URL("../modules/intelligence/services.ts", import.meta.url), "utf8"),
+    readFile(new URL("../modules/intelligence/application.ts", import.meta.url), "utf8"), readFile(new URL("../modules/intelligence/domain.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(provider, /implements AIIntelligenceProvider/); assert.match(provider, /marketsToAvoid/); assert.match(provider, /tacticalOutlook/);
+  assert.doesNotMatch(provider, /fetch\(|OpenAI|process\.env|prompt/i); assert.match(services, /aiProvider\.generateMatchIntelligence/);
+  assert.match(application, /new MockAIIntelligenceProvider/); assert.match(domain, /"very-high"\|"high"\|"medium"\|"low"/);
 });

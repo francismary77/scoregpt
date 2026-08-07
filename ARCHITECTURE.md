@@ -59,3 +59,13 @@ Predictions can carry `ContentAccessLevel` metadata: `public`, `registered` or `
 `ProtectedView` is the reusable mock route boundary for `/dashboard`, `/account` and `/admin`, including admin-role authorization. Because this batch deliberately has no secure server session, this is presentation-layer protection only. When live authentication arrives, it must be replaced by server-side `requireAuth()`/`requireMembership()` checks backed by provider-managed sessions.
 
 The future migration is deliberately narrow: `MockAuthProvider` → `SupabaseAuthProvider`, `MockMembershipRepository` → `SupabaseMembershipRepository`, and `MockPredictionUsageRepository` → `SupabasePredictionUsageRepository`. Secure session cookies and server-side authorization replace temporary browser state; pages, forms, membership UI and entitlement decision consumers retain the same contracts.
+
+## Batch 3C deterministic AI intelligence
+
+`IntelligenceService` now delegates complete report generation to the configured `AIIntelligenceProvider`. It supplies only normalized provider-neutral inputs: fixture, competition, team form and match statistics. The composition root selects `MockAIIntelligenceProvider`; neither the service nor UI imports deterministic generation rules.
+
+The mock provider calculates reproducible confidence and risk from structured form and comparison values, then returns a complete `IntelligenceReport`. Reports include nine market analyses, a recommended market, avoid-market guidance, natural-language match and team-form summaries, strengths, weaknesses, tactical styles, expected match flow, confidence explanation and risk factors. Fixed source timestamps and input-derived rules ensure the same normalized input produces the same report.
+
+Confidence uses four provider-neutral levels: Very High, High, Medium and Low. Risk remains Low, Medium or High and includes both structured factors and an explanation. These values are consumed by shared visual components across the report and homepage.
+
+There are no prompts, model SDKs, network calls or environment requirements in the mock provider. A future `OpenAIProvider` implements the same `AIIntelligenceProvider` contract and returns the same `IntelligenceReport` shape. The service, report page, homepage and business logic require no corresponding rewrite.

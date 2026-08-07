@@ -22,8 +22,8 @@ const metrics = [{value:"5",label:"Demo competitions"},{value:"8",label:"Structu
 
 export const metadata: Metadata = { title: "Smarter Football Predictions Powered by AI", description: "Explore transparent AI football predictions with clear confidence, risk and reasoning from ScoreGPT." };
 
-export default function Home() {
-  const football = getHomepageFootballData();
+export default async function Home() {
+  const football = await getHomepageFootballData();
   const featured = football.featured;
   const homepageMatches = football.matches.map(({fixture,prediction,competition})=>({id:fixture.id,competition:competition.name,home:fixture.homeTeam.name,away:fixture.awayTeam.name,kickoff:fixture.displayKickoff,insight:prediction.market.label,confidence:prediction.confidence.value,risk:prediction.risk[0].toUpperCase()+prediction.risk.slice(1) as "Low"|"Medium"|"High"}));
   return <div className="page-shell">
