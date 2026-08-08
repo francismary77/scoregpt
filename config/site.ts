@@ -1,4 +1,4 @@
-export const PRODUCTION_SITE_URL = "https://scoregpt.com.ng";
+export const PRODUCTION_SITE_URL = "https://9jafootballai.com.ng";
 export const DEVELOPMENT_SITE_URL = "http://localhost:3000";
 
 function normalizeSiteUrl(value: string): string {

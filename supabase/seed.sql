@@ -32,7 +32,7 @@ values (
   'Double Chance',
   80,
   'low',
-  'Deterministic demonstration report generated from existing ScoreGPT mock inputs.',
+  'Deterministic demonstration report generated from existing 9ja Football AI mock inputs.',
   '{"summary":"Development seed report","isDemo":true}'::jsonb,
   '2026-08-07T12:00:00Z',
   '2026-08-07T11:55:00Z',

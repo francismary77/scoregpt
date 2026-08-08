@@ -1,4 +1,4 @@
-# ScoreGPT Supabase database foundation
+# 9ja Football AI Supabase database foundation
 
 ## Scope
 

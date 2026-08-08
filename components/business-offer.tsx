@@ -3,8 +3,8 @@ import Link from "next/link";
 const capabilities = [
   "AI-powered football predictions",
   "Membership and subscription system",
-  "Managed hosting",
-  "Football data integration",
+  "Managed Platform service",
+  "30 Top Football Leagues & Competitions capability",
   "Payment integration",
   "Professional responsive website",
 ];
@@ -16,7 +16,7 @@ export function BusinessOffer() {
         <div className="business-copy">
           <span className="eyebrow">For football business owners</span>
           <h2 id="business-title">Build Your Own AI Football Prediction Brand</h2>
-          <p>Launch a professional AI-powered football platform built around your brand, your audience and your business — without starting from zero.</p>
+          <p>Purchase the setup and build of your own branded AI-powered football intelligence business, with the first six months of managed platform service included.</p>
           <div className="business-actions">
             <Link href="/sales" className="button">View Business Packages <span>→</span></Link>
             <Link href="#today-matches" className="button button-ghost">See What You Can Own <span>↓</span></Link>
@@ -29,6 +29,7 @@ export function BusinessOffer() {
           </div>
           <div className="business-points"><span>Your brand.</span><span>Your domain.</span><span>Your subscribers.</span><span>Your pricing.</span></div>
           <ul>{capabilities.map((capability) => <li key={capability}>{capability}</li>)}</ul>
+          <small>Live coverage for all 30 competitions is not active on the current 9ja Football AI demonstration platform.</small>
         </div>
       </div>
     </section>

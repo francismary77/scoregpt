@@ -1,6 +1,6 @@
 import { confidenceScore, type Competition, type Fixture, type MatchStatistics, type Prediction, type ResultRecord, type Team, type TeamForm } from "./domain";
 
-const source = { sourceType: "mock", isDemo: true, sourceLabel: "ScoreGPT demonstration dataset" } as const;
+const source = { sourceType: "mock", isDemo: true, sourceLabel: "9ja Football AI demonstration dataset" } as const;
 const team = (id: string, name: string, shortName: string, country: string): Team => ({ id, name, shortName, country });
 
 export const competitions: Competition[] = [

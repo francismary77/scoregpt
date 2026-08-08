@@ -1,6 +1,6 @@
-# ScoreGPT intelligence architecture
+# 9ja Football AI intelligence architecture
 
-ScoreGPT keeps its existing App Router structure and adds one incremental domain module at `modules/intelligence`. No disruptive `src/` migration is required.
+9ja Football AI keeps its existing App Router structure and adds one incremental domain module at `modules/intelligence`. No disruptive `src/` migration is required.
 
 ## Runtime flow
 

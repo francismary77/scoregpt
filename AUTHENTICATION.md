@@ -1,4 +1,4 @@
-# ScoreGPT authentication configuration
+# 9ja Football AI authentication configuration
 
 Batch 4B keeps `AuthService` and `AuthProvider` as the application boundary and configures `SupabaseAuthProvider` for real accounts. Supabase SSR clients synchronize secure session cookies; protected server pages validate the user with `auth.getUser()` before rendering. Profiles, memberships and usage are read through repository contracts, never directly from page components.
 
@@ -29,13 +29,13 @@ Apply `supabase/migrations/202608080001_batch_4b_auth_hardening.sql` to Developm
 
 ## Production configuration
 
-The canonical production origin is `https://scoregpt.com.ng`.
+The canonical production origin is `https://9jafootballai.com.ng`.
 
-1. Set `https://scoregpt.com.ng` as the Supabase Site URL.
-2. Add `https://scoregpt.com.ng/auth/callback` and `https://scoregpt.com.ng/reset-password` as exact redirect URLs.
-3. Set `NEXT_PUBLIC_SITE_URL=https://scoregpt.com.ng` in the production environment.
+1. Set `https://9jafootballai.com.ng` as the Supabase Site URL.
+2. Add `https://9jafootballai.com.ng/auth/callback` and `https://9jafootballai.com.ng/reset-password` as exact redirect URLs.
+3. Set `NEXT_PUBLIC_SITE_URL=https://9jafootballai.com.ng` in the production environment.
 4. Add only Vercel preview URL patterns that genuinely need authentication testing; previews otherwise return authentication callbacks to the canonical production domain.
 5. Configure the public Supabase values in Vercel and keep all secret/service-role credentials server-only.
 6. Apply reviewed migrations to the Production Supabase project through the migration workflow, not dashboard-only edits.
 
-Password-reset and confirmation links never display tokens in ScoreGPT UI or logs. Safe return paths accept same-origin relative paths only.
+Password-reset and confirmation links never display tokens in 9ja Football AI UI or logs. Safe return paths accept same-origin relative paths only.

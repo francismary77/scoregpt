@@ -9,7 +9,7 @@ export function IntelligenceFlow() {
   return (
     <section className="intelligence-flow" aria-labelledby="flow-title">
       <div className="container">
-        <div className="flow-intro"><span className="eyebrow">Platform in action</span><h2 id="flow-title">See how data becomes a prediction.</h2><p>ScoreGPT turns match signals into clear, explainable intelligence—not a list of unexplained tips.</p></div>
+        <div className="flow-intro"><span className="eyebrow">Platform in action</span><h2 id="flow-title">See how data becomes a prediction.</h2><p>9ja Football AI turns match signals into clear, explainable intelligence—not a list of unexplained tips.</p></div>
         <div className="flow-visual">
           <div className="flow-beam" aria-hidden="true" />
           {stages.map((stage, index) => <article key={stage.step} className={index === 3 ? "flow-output" : ""}>

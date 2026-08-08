@@ -10,11 +10,11 @@ const siteUrl=getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: `${brand.siteName} — ${brand.tagline}`, template: `%s | ${brand.siteName}` },
-  description: "Transparent AI-powered football match intelligence, confidence scoring and public results.",
+  description: "AI-powered football predictions and intelligence with transparent confidence, risk and public results.",
   icons: { icon: brand.favicon, shortcut: brand.favicon },
   openGraph: {
     title: `${brand.siteName} — ${brand.tagline}`,
-    description: "Transparent, data-driven football match intelligence explained by AI.",
+    description: "AI-powered football predictions and intelligence explained with confidence and risk.",
     url: siteUrl,
     siteName: brand.siteName,
     images: [{ url: "/og.png", width: 1200, height: 630, alt: `${brand.siteName} football intelligence platform` }],
