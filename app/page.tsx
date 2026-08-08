@@ -11,6 +11,7 @@ import { IntelligenceFlow } from "@/components/intelligence-flow";
 import { brand } from "@/config/brand";
 import { businessMarketing } from "@/config/marketing";
 import { getHomepageFootballData } from "@/modules/intelligence/application";
+import { getSiteUrl } from "@/config/site";
 
 const benefits = [
   ["01", "Data, not guesswork", "Current match data and statistical signals shape every analysis."],
@@ -20,7 +21,7 @@ const benefits = [
 ];
 const metrics = [{value:"5",label:"Demo competitions"},{value:"8",label:"Structured fixtures"},{value:"100%",label:"Explainable outputs"},{value:"Public",label:"Results record"}];
 
-export const metadata: Metadata = { title: "Smarter Football Predictions Powered by AI", description: "Explore transparent AI football predictions with clear confidence, risk and reasoning from ScoreGPT." };
+export const metadata: Metadata = { title: "Smarter Football Predictions Powered by AI", description: "Explore transparent AI football predictions with clear confidence, risk and reasoning from ScoreGPT.", alternates:{canonical:getSiteUrl()} };
 
 export default async function Home() {
   const football = await getHomepageFootballData();

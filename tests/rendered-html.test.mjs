@@ -9,7 +9,7 @@ async function render(path = "/") {
   return worker.fetch(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-for (const [path, expected] of [["/", "Smarter Football Predictions"], ["/matches", "Match Centre"], ["/results", "Public Results Centre"], ["/matches/ars-che-demo", "Recommended market"], ["/register", "Create your free account"], ["/login", "Demo access"], ["/forgot-password", "Reset your password"], ["/dashboard", "Checking your session"], ["/account", "Checking your session"], ["/admin", "Checking your session"], ["/admin/orders", "Checking your session"], ["/checkout/platform/launch", "Pay by Bank Transfer"], ["/checkout/platform/business", "Pay by Bank Transfer"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
+for (const [path, expected] of [["/", "Smarter Football Predictions"], ["/matches", "Match Centre"], ["/results", "Public Results Centre"], ["/matches/ars-che-demo", "Recommended market"], ["/register", "Create your free account"], ["/login", "Secure member access"], ["/forgot-password", "Reset your password"], ["/reset-password", "Choose a new password"], ["/checkout/platform/launch", "Pay by Bank Transfer"], ["/checkout/platform/business", "Pay by Bank Transfer"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
   test(`server renders ${path}`, async () => { const response = await render(path); assert.equal(response.status, 200); assert.match(await response.text(), new RegExp(expected, "i")); });
 }
 
@@ -26,7 +26,7 @@ test("Batch 2D auth and membership boundaries remain provider-neutral and demo-s
     readFile(new URL("../components/report-access-gate.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(domain, /PredictionAccessDecision/); assert.match(domain, /"public"\|"registered"\|"premium"/);
-  assert.match(providers, /interface AuthProvider/); assert.match(providers, /MockAuthProvider/); assert.match(providers, /sessionStorage/); assert.doesNotMatch(providers, /localStorage|jwt|token/i);
+  assert.match(providers, /interface AuthProvider/); assert.match(providers, /MockAuthProvider/); assert.match(providers, /SupabaseAuthProvider/); assert.doesNotMatch(providers, /localStorage/);
   assert.match(repositories, /MembershipRepository/); assert.match(repositories, /PredictionUsageRepository/);
   assert.match(services, /allowance-exhausted/); assert.match(services, /premium-access/); assert.match(services, /authentication-required/);
   assert.match(config, /freePredictionAllowance:\s*3/); assert.match(config, /allowancePeriod:\s*"lifetime-welcome"/);

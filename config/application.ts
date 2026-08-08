@@ -1,6 +1,8 @@
+import { footballDataConfig } from "./football-data";
+
 export const featureFlags = {
   useMockFootballData: true,
-  liveFootballDataEnabled: false,
+  liveFootballDataEnabled: footballDataConfig.liveProviderEnabled,
   aiGenerationEnabled: false,
   authenticationEnabled: true,
   paymentsEnabled: false,
@@ -17,5 +19,8 @@ export const applicationConfig = {
   supportedCompetitionIds: ["premier-league", "champions-league", "la-liga", "serie-a", "bundesliga"],
 } as const;
 
-export const authConfig = { mode:"mock" as const, liveAuthEnabled:false };
+export const authConfig = {
+  mode: process.env.NEXT_PUBLIC_AUTH_PROVIDER === "mock" ? "mock" as const : "supabase" as const,
+  liveAuthEnabled: process.env.NEXT_PUBLIC_AUTH_PROVIDER !== "mock",
+};
 export const entitlementConfig = { freePredictionAllowance:3, allowancePeriod:"lifetime-welcome" as const };

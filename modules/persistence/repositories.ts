@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Membership, MembershipStatus, MembershipTier, PredictionUsage } from "@/modules/account/domain";
-import type { MembershipRepository, PredictionUsageRepository } from "@/modules/account/repositories";
+import type { MembershipRepository, PredictionUsageRepository, ProfileRepository } from "@/modules/account/repositories";
 import type { PlatformSetupOrder, PaymentStatus } from "@/modules/billing/domain";
 import type { PlatformOrderRepository } from "@/modules/billing/repositories";
 import type { Database, Json } from "@/lib/supabase/database.types";
@@ -39,7 +39,7 @@ function throwOnError(error: { message: string } | null): void {
 }
 
 export function getSnapshotFreshness(expiresAt: string | null, now = new Date()): SnapshotFreshness {
-  if (!expiresAt) return "stale";
+  if (!expiresAt) return "fresh";
   return new Date(expiresAt).getTime() > now.getTime() ? "fresh" : "stale";
 }
 
@@ -74,6 +74,23 @@ export class SupabaseMembershipRepository implements MembershipRepository {
   }
 }
 
+export class SupabaseProfileRepository implements ProfileRepository {
+  constructor(private readonly client: Client) {}
+  async getProfile(userId: string) {
+    const { data, error } = await this.client.from("profiles").select("user_id,display_name").eq("user_id", userId).maybeSingle();
+    throwOnError(error);
+    return data ? { userId: data.user_id, displayName: data.display_name ?? "Member", country: "Nigeria" } : null;
+  }
+  async updateDisplayName(userId: string, displayName: string) {
+    const clean = displayName.trim();
+    if (!clean) throw new Error("Display name is required.");
+    const { data, error } = await this.client.from("profiles").update({ display_name: clean }).eq("user_id", userId).select("user_id,display_name").single();
+    throwOnError(error);
+    if (!data) throw new Error("Supabase repository error: profile was not returned.");
+    return { userId: data.user_id, displayName: data.display_name ?? clean, country: "Nigeria" };
+  }
+}
+
 export class SupabasePredictionUsageRepository implements PredictionUsageRepository {
   constructor(private readonly client: Client) {}
 
@@ -85,11 +102,15 @@ export class SupabasePredictionUsageRepository implements PredictionUsageReposit
       .eq("usage_type", "report-view")
       .order("created_at", { ascending: false });
     throwOnError(error);
-    const viewedFixtureIds = [...new Set((data ?? []).flatMap((row) => row.fixture_id ? [row.fixture_id] : []))];
+    const ids = [...new Set((data ?? []).flatMap((row) => row.fixture_id ? [row.fixture_id] : []))];
+    const fixtures = ids.length ? await this.client.from("fixtures").select("id,provider_fixture_id").in("id", ids) : { data: [], error: null };
+    throwOnError(fixtures.error);
+    const labels = new Map((fixtures.data ?? []).map((fixture) => [fixture.id, fixture.provider_fixture_id ?? fixture.id]));
+    const viewedFixtureIds = ids.map((id) => labels.get(id) ?? id);
     return {
       userId,
       viewedFixtureIds,
-      used: viewedFixtureIds.length,
+      used: ids.length,
       updatedAt: data?.[0]?.created_at ?? new Date(0).toISOString(),
     };
   }
@@ -99,11 +120,20 @@ export class SupabasePredictionUsageRepository implements PredictionUsageReposit
   }
 
   async recordPredictionView(userId: string, fixtureId: string): Promise<PredictionUsage> {
-    const usage = await this.getUsageForUser(userId);
-    if (!usage.viewedFixtureIds.includes(fixtureId)) {
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    let persistedFixtureId = fixtureId;
+    if (!uuidPattern.test(fixtureId)) {
+      const { data, error } = await this.client.from("fixtures").select("id").eq("provider_fixture_id", fixtureId).maybeSingle();
+      throwOnError(error);
+      if (!data) throw new Error("This fixture is not available in persisted intelligence yet.");
+      persistedFixtureId = data.id;
+    }
+    const { data: existing, error: readError } = await this.client.from("prediction_usage").select("id").eq("user_id", userId).eq("fixture_id", persistedFixtureId).eq("usage_type", "report-view").maybeSingle();
+    throwOnError(readError);
+    if (!existing) {
       const { error } = await this.client.from("prediction_usage").insert({
         user_id: userId,
-        fixture_id: fixtureId,
+        fixture_id: persistedFixtureId,
         usage_type: "report-view",
       });
       throwOnError(error);

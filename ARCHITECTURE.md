@@ -89,3 +89,15 @@ The first durable persistence layer is versioned in `supabase/migrations`. It in
 Supabase clients live under `lib/supabase`; repository adapters live under `modules/persistence`. UI modules continue to consume services and repository contracts rather than querying tables. `createPersistenceRepositories()` defaults to existing mocks and selects Supabase only when configuration explicitly requests it and a client is supplied, so an unavailable Development project cannot break the public review site.
 
 This batch does not activate the new persistence path in live authentication, intelligence or billing flows. See `DATABASE.md` for schema, policies, migration operations, environment safety and the cache freshness model.
+
+## Batch 4B Supabase authentication
+
+`SupabaseAuthProvider` implements the existing `AuthProvider` contract for signup, login, logout, session restoration and password recovery. Browser auth state is hydrated from a server-validated user, while the root proxy refreshes Supabase cookies. Protected pages call `requireServerUser()` and admin pages derive authorization only from the protected profile role.
+
+Profile, membership and usage operations remain repository-backed. Free prediction usage resolves UI fixture identifiers to database UUIDs and is unique per user/fixture, so refreshes and new browser sessions cannot reset or duplicate consumption. See `AUTHENTICATION.md` for callback and dashboard configuration.
+
+## Batch 4C football data ingestion
+
+Football ingestion is an asynchronous layer beside the approved synchronous demo presentation: invocation → `FootballDataIngestionService` → existing `FootballDataProvider` contract → normalized provider-neutral payloads → repository contract → Supabase. Provider-specific payloads never cross the adapter boundary.
+
+The service is cache-first, freshness-aware, budget-aware and failure-tolerant. Competition scope and seasons are centralized, provider IDs remain separate from internal UUIDs, and all writes use provider-key upserts for idempotent scheduled/manual retries. Supabase persists snapshot provenance and a server-only request/cache audit. The default provider remains disabled and makes no external calls. See `FOOTBALL_DATA.md` for insertion points, cache rules, scheduling, environment controls, and future API-Football activation.

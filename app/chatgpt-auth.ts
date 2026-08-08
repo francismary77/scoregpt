@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getSiteUrl } from "@/config/site";
 
 export type ChatGPTUser = {
   userId: string;
@@ -63,11 +64,11 @@ function safeRelativeReturnPath(value: string): string {
 
   let url: URL;
   try {
-    url = new URL(value, "https://app.local");
+    url = new URL(value, getSiteUrl());
   } catch {
     return "/";
   }
-  if (url.origin !== "https://app.local") return "/";
+  if (url.origin !== getSiteUrl()) return "/";
   if (isReservedAuthPath(url.pathname)) return "/";
 
   return `${url.pathname}${url.search}${url.hash}`;
