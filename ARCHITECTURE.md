@@ -101,3 +101,9 @@ Profile, membership and usage operations remain repository-backed. Free predicti
 Football ingestion is an asynchronous layer beside the approved synchronous demo presentation: invocation → `FootballDataIngestionService` → existing `FootballDataProvider` contract → normalized provider-neutral payloads → repository contract → Supabase. Provider-specific payloads never cross the adapter boundary.
 
 The service is cache-first, freshness-aware, budget-aware and failure-tolerant. Competition scope and seasons are centralized, provider IDs remain separate from internal UUIDs, and all writes use provider-key upserts for idempotent scheduled/manual retries. Supabase persists snapshot provenance and a server-only request/cache audit. The default provider remains disabled and makes no external calls. See `FOOTBALL_DATA.md` for insertion points, cache rules, scheduling, environment controls, and future API-Football activation.
+
+## Batch 4E production provider preparation
+
+`ApiFootballProvider` is the concrete server-only API-Football adapter. Raw provider envelopes, authentication headers, endpoint choices, timeouts and validation remain inside the adapter; normalized competition, team, fixture, score and snapshot records cross the contract. Provider construction remains isolated from pages and normal reads.
+
+`FootballBootstrapWorkflow` plans staged manual ingestion and defaults to dry-run. Live execution requires an injected privileged Supabase client, an explicitly enabled provider, sufficient audited request budget and a confirmation phrase. There is no public ingestion route. Quota summaries are derived from the existing request audit table, while persisted football repositories preserve cache-first, idempotent reads for future homepage consumption.

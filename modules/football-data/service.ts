@@ -1,7 +1,7 @@
 import type { FootballCompetitionConfig } from "@/config/football-data";
 import type { FootballDataProvider } from "@/modules/intelligence/providers";
 import { expiresAtFor } from "./freshness";
-import type { IngestionResult, NormalizedSnapshot, RefreshReason, StoredSnapshot } from "./domain";
+import type { IngestionResult, NormalizedSnapshot, ProviderQuotaStatus, RefreshReason, StoredSnapshot } from "./domain";
 import type { FootballIngestionRepository, ProviderRequestRepository } from "./repositories";
 
 export class FootballDataIngestionService {
@@ -20,26 +20,31 @@ export class FootballDataIngestionService {
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
   }
 
-  private async hasBudget(): Promise<boolean> {
-    return (await this.requests.countRequests(this.provider.name, this.dayStart())) < this.dailyBudget;
+  private async hasBudget(required = 1): Promise<boolean> {
+    return (await this.requests.countRequests(this.provider.name, this.dayStart())) + required <= this.dailyBudget;
   }
 
-  private async record(category: "competition" | NormalizedSnapshot["category"], endpoint: string, succeeded: boolean, cacheState: "fresh" | "stale" | "missing", refreshReason: RefreshReason, errorCode: string | null) {
-    await this.requests.recordRequest({ provider: this.provider.name, category, endpoint, requestedAt: this.now().toISOString(), requestCount: cacheState === "fresh" ? 0 : 1, succeeded, cacheState, refreshReason, errorCode });
+  private async record(category: "competition" | NormalizedSnapshot["category"], endpoint: string, succeeded: boolean, cacheState: "fresh" | "stale" | "missing", refreshReason: RefreshReason, errorCode: string | null, requestCount = cacheState === "fresh" ? 0 : 1) {
+    await this.requests.recordRequest({ provider: this.provider.name, category, endpoint, requestedAt: this.now().toISOString(), requestCount, succeeded, cacheState, refreshReason, errorCode });
   }
 
-  async ingestCompetition(competitionId: string, reason: RefreshReason = "manual"): Promise<IngestionResult> {
+  async getQuotaStatus(): Promise<ProviderQuotaStatus> { return this.requests.getQuotaStatus(this.provider.name, this.dayStart(), this.dailyBudget); }
+
+  async ingestCompetition(competitionId: string, reason: RefreshReason = "manual", requestedCategories?: readonly string[]): Promise<IngestionResult> {
     const config = this.competitions.find((item) => item.id === competitionId);
-    if (!config?.enabled) return { status: "skipped", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Competition is disabled or unsupported." };
+    if (!config?.enabled || !config.providerId || !config.currentSeason) return { status: "skipped", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Competition is disabled, unsupported or missing a provider mapping." };
     if (!this.provider.enabled) return { status: "degraded", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Live provider is disabled; existing database/demo data remains available." };
-    if (!(await this.hasBudget())) return { status: "skipped", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Daily provider request budget reached." };
+    const categories = requestedCategories?.filter((category) => config.dataCategories.some((enabled) => enabled === category)) ?? config.dataCategories;
+    const estimatedRequests = this.provider.estimateCompetitionRequests?.(categories) ?? 1;
+    if (!(await this.hasBudget(estimatedRequests))) return { status: "skipped", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Daily provider request budget would be exceeded." };
     try {
-      const payload = await this.provider.fetchCompetitionData(config.providerId, config.currentSeason);
+      const payload = await this.provider.fetchCompetitionData(config.providerId, config.currentSeason, categories);
       const counts = await this.repository.ingestBundle(this.provider.name, payload);
-      await this.record("competition", "competition-bundle", true, "missing", reason, null);
+      await this.record("competition", "competition-bundle", true, "missing", reason, null, payload.requestCount ?? estimatedRequests);
       return { status: "completed", provider: this.provider.name, ...counts };
     } catch (error) {
-      await this.record("competition", "competition-bundle", false, "missing", reason, error instanceof Error ? error.name : "ProviderError");
+      const requestCount = typeof error === "object" && error && "requestCount" in error && typeof error.requestCount === "number" ? error.requestCount : error instanceof Error && error.name === "MissingFootballProviderKeyError" ? 0 : 1;
+      await this.record("competition", "competition-bundle", false, "missing", reason, error instanceof Error ? error.name : "ProviderError", requestCount);
       return { status: "degraded", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Provider refresh failed; cached/demo data remains available." };
     }
   }
@@ -62,7 +67,8 @@ export class FootballDataIngestionService {
       await this.record(category, "fixture-snapshot", true, "fresh", reason, null);
       return cached;
     }
-    if (!this.provider.enabled || !(await this.hasBudget())) return cached;
+    const estimatedRequests = this.provider.estimateFixtureRequests?.([category]) ?? 1;
+    if (!this.provider.enabled || !(await this.hasBudget(estimatedRequests))) return cached;
     const refreshKey = `${this.provider.name}:${fixtureId}:${category}`;
     const inFlight = this.refreshes.get(refreshKey);
     if (inFlight) return inFlight;
@@ -74,15 +80,16 @@ export class FootballDataIngestionService {
 
   private async refreshSnapshot(fixtureId: string, providerFixtureId: string, category: NormalizedSnapshot["category"], reason: RefreshReason, cached: StoredSnapshot | null): Promise<StoredSnapshot | null> {
     try {
-      const refreshed = await this.provider.fetchFixtureData(providerFixtureId);
+      const refreshed = await this.provider.fetchFixtureData(providerFixtureId, [category]);
       const snapshot = refreshed.snapshots.find((item) => item.category === category);
       if (!snapshot) return cached;
       const expiresAt = expiresAtFor(category, refreshed.fixture.status, refreshed.fixture.kickoffAt, snapshot.fetchedAt);
       await this.repository.upsertSnapshot(this.provider.name, snapshot, fixtureId, expiresAt);
-      await this.record(category, "fixture-snapshot", true, cached ? "stale" : "missing", cached ? "stale" : "missing", null);
+      await this.record(category, "fixture-snapshot", true, cached ? "stale" : "missing", cached ? "stale" : "missing", null, refreshed.requestCount ?? 1);
       return this.repository.getSnapshot(fixtureId, category, this.provider.name);
     } catch (error) {
-      await this.record(category, "fixture-snapshot", false, cached ? "stale" : "missing", reason, error instanceof Error ? error.name : "ProviderError");
+      const requestCount = typeof error === "object" && error && "requestCount" in error && typeof error.requestCount === "number" ? error.requestCount : error instanceof Error && error.name === "MissingFootballProviderKeyError" ? 0 : 1;
+      await this.record(category, "fixture-snapshot", false, cached ? "stale" : "missing", reason, error instanceof Error ? error.name : "ProviderError", requestCount);
       return cached;
     }
   }

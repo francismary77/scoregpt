@@ -69,12 +69,14 @@ export interface CompetitionIngestionPayload {
   fixtures: NormalizedFixture[];
   snapshots: NormalizedSnapshot[];
   fetchedAt: string;
+  requestCount?: number;
 }
 
 export interface FixtureRefreshPayload {
   fixture: NormalizedFixture;
   snapshots: NormalizedSnapshot[];
   fetchedAt: string;
+  requestCount?: number;
 }
 
 export interface StoredSnapshot {
@@ -105,4 +107,45 @@ export interface IngestionResult {
   fixtures: number;
   snapshots: number;
   reason?: string;
+}
+
+export interface ProviderQuotaStatus {
+  provider: string;
+  requestsUsedToday: number;
+  configuredDailyBudget: number;
+  remainingBudget: number;
+  cacheHits: number;
+  providerAttempts: number;
+  successes: number;
+  failures: number;
+}
+
+export type BootstrapStage = "A" | "B" | "C" | "D";
+export interface BootstrapPlanItem {
+  stage: BootstrapStage;
+  competitionId: string;
+  competitionName: string;
+  providerCompetitionId: string | null;
+  categories: readonly string[];
+  cacheExists: boolean;
+  estimatedRequests: number;
+  eligible: boolean;
+  reason: string;
+}
+
+export interface BootstrapPlan {
+  dryRun: true;
+  provider: string;
+  requestsUsedToday: number;
+  configuredDailyBudget: number;
+  remainingBudget: number;
+  estimatedRequests: number;
+  items: BootstrapPlanItem[];
+}
+
+export interface PersistedHomepageFootballData {
+  competitions: Array<{ id: string; name: string; country: string | null; season: string }>;
+  upcomingFixtures: Array<{ id: string; competitionId: string; homeTeamId: string; awayTeamId: string; kickoffAt: string; status: string }>;
+  recentResults: Array<{ id: string; competitionId: string; homeTeamId: string; awayTeamId: string; homeScore: number | null; awayScore: number | null; kickoffAt: string }>;
+  headlineReports: Array<{ id: string; fixtureId: string; recommendedMarket: string | null; confidence: number | null; riskLevel: string | null }>;
 }

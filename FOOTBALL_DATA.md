@@ -1,72 +1,98 @@
 # Football data ingestion
 
-Batch 4C adds a provider-neutral, cache-first football data pipeline. It does not configure or call a live football API.
+Batch 4E prepares a production API-Football adapter behind the existing provider-neutral ingestion contracts. The provider remains disabled, no credential is configured, and no external football request is made by the application or by normal page rendering.
 
-## Runtime flow
+## Runtime boundaries
 
-`scheduler/manual server action` → `FootballDataIngestionService` → `FootballDataProvider` → normalized records → `FootballIngestionRepository` → Supabase.
+The controlled flow is:
 
-Provider-specific response types belong inside the future adapter. The adapter returns only `CompetitionIngestionPayload` or `FixtureRefreshPayload`, so repositories, intelligence services, and UI code never depend on an API-Football response shape.
+`manual privileged runner` → `FootballBootstrapWorkflow` → `FootballDataIngestionService` → `FootballDataProvider` → normalized records → `FootballIngestionRepository` → Supabase.
 
-The current composition root uses `DisabledFootballDataProvider`. Without a provider, ingestion returns a degraded/skipped result and the approved database/demo presentation remains available. It makes no external request.
+`ApiFootballProvider` owns API-Football endpoints, headers, timeouts, response validation and raw response types. It returns only normalized competitions, teams, fixtures, scores and provider-neutral snapshots. Provider JSON never enters React components or public business logic. The homepage, Match Centre, Results and report pages read existing intelligence/repository data and cannot invoke ingestion.
 
-## Cache-first behavior
+The adapter supports the provider endpoints needed for competition/season metadata, teams, fixtures and statuses, scores/results, standings, recent team form, head-to-head fixtures, injuries, lineups, match statistics and odds metadata. Rich fixture categories are fetched individually so a request for one category does not consume the complete set.
 
-Snapshot reads first ask the repository for `(fixture_id, data_type, provider)`:
+## Disabled-by-default and credentials
 
-1. Fresh data is returned immediately and records a zero-cost cache hit.
-2. Stale or missing data is refreshed only when the injected provider is enabled and budget remains.
-3. A provider failure returns stale data when available.
-4. A Supabase outage returns a graceful unavailable result when live ingestion is disabled.
+The checked-in defaults are:
 
-Freshness is centralized in `modules/football-data/freshness.ts`:
+```text
+FOOTBALL_DATA_PROVIDER=disabled
+FOOTBALL_DATA_PROVIDER_ENABLED=false
+FOOTBALL_API_KEY=
+FOOTBALL_API_DAILY_REQUEST_BUDGET=10
+FOOTBALL_INGESTION_DRY_RUN=true
+```
 
-- competition, season and team metadata: about 24 hours;
-- upcoming fixture data: about 6 hours;
-- data within two hours of kickoff: about 45 minutes;
-- live data: about 45 seconds (future-ready; live ingestion is disabled);
-- finished/cancelled fixtures: durable with no expiry. Categories that later need correction can still be refreshed explicitly.
+Both the provider identifier and the explicit enabled switch must be set before the adapter is live. A missing key fails safely before transport is called. `FOOTBALL_API_KEY` is read only in the server configuration boundary; it must never use `NEXT_PUBLIC_`, enter a browser bundle, be printed, or be committed. `.env.local` remains owner-managed and ignored.
 
-## Competition scope
+## Cache-first request protection
 
-`config/football-data.ts` owns enabled competitions, provider IDs, current seasons, ordering, and refresh priority. Disabled or unknown competitions are skipped before a provider can be called. This is the single configuration point for future league rollout.
+Snapshot reads follow this order:
 
-## Request budget and provenance
+1. Read persisted cache.
+2. Return fresh data and audit a zero-request cache hit.
+3. Verify the competition/category mapping and refresh requirement.
+4. Estimate the provider calls required by the exact operation.
+5. Check that used requests plus the estimate remain within the internal daily budget.
+6. Only then invoke the adapter.
 
-`football_provider_requests` records provider, category, endpoint, timestamp, request count, success/failure, cache state, refresh reason, and safe error code. Fresh cache hits have `request_count = 0`; attempted provider calls count even when they fail. `FOOTBALL_API_DAILY_REQUEST_BUDGET` defaults to 100.
+Failed provider transports are audited because a provider may count them. Missing credentials make zero network attempts and are recorded with zero request count. Stale cache is returned when refresh fails; missing cache degrades without crashing public pages. Concurrent stale reads in one instance share one refresh promise.
 
-Every snapshot exposes provider, provider reference, fetched/expiry timestamps, cache state, and demo status. Internal UUIDs remain database identities; provider IDs remain separate deduplication keys.
+Freshness remains conservative:
 
-## Scheduling and idempotency
+- competition, season and team metadata: approximately 24 hours;
+- ordinary upcoming fixture data: approximately 6 hours;
+- within two hours of kickoff: approximately 45 minutes;
+- live fixtures: approximately 45 seconds as a future capability;
+- finished or cancelled fixtures: durable, with no automatic expiry.
 
-`ingestEnabledCompetitions("scheduled")` is the future cron entry point. `ingestCompetition(id, "manual")` is the future admin refresh entry point. Both use provider-key upserts, so retries update existing competitions, teams, fixtures, and snapshots rather than duplicating them.
+## Competition activation
 
-Concurrent stale reads in one server instance share an in-flight refresh promise keyed by provider, fixture and category. A future distributed scheduler should add a database/advisory or durable queue lock for protection across multiple Vercel instances.
+`config/football-data.ts` is the single rollout registry for 30 top leagues and competitions. Each entry contains an internal ID, nullable provider ID, name, country/region, nullable current season, priority, enabled state, homepage feature state, category list and refresh priority.
 
-No cron route is exposed in this batch. A future scheduler must create a privileged, server-only Supabase client and inject it into `createFootballDataIngestion`; the public publishable client intentionally has no ingestion write policy.
+The five previously configured demonstration competitions retain their documented API-Football mappings. The other 25 entries are disabled and deliberately have no invented provider IDs or seasons. Adding a name to the registry does not claim live coverage. Competitions should be mapped, validated and enabled gradually after the provider account is approved.
 
-The future privileged credential belongs in an explicitly server-only module such as `lib/supabase/admin.ts`, guarded by `import "server-only"`. Store it in Vercel as an encrypted server environment variable (for example `SUPABASE_SERVICE_ROLE_KEY`, or the current Supabase server-secret equivalent selected at implementation time), scoped independently for Development/Preview and Production. It must never use a `NEXT_PUBLIC_` prefix, enter `.env.example` with a value, or be imported by client components. The eventual football-provider key follows the same server-only rule and belongs only in the provider adapter/scheduler boundary.
+## Manual bootstrap and dry-run
 
-## Future API-Football adapter
+`runManualFootballBootstrap()` is a server-only function that requires an explicitly supplied privileged Supabase client. There is no HTTP or public ingestion route.
 
-Implement `FootballDataProvider` in a server-only adapter:
+Bootstrap stages are:
 
-1. keep API credentials and raw payload types inside the adapter;
-2. map statuses and identifiers through normalization helpers;
-3. return normalized competition/fixture payloads;
-4. inject the adapter and privileged Supabase client at the composition root;
-5. enable the provider through server environment configuration only after approval.
+- Stage A: competition metadata and teams;
+- Stage B: upcoming fixtures;
+- Stage C: recent results and standings;
+- Stage D: selective rich fixture categories after persisted fixtures are reviewed.
 
-No UI rewrite is required. Match Centre, Results, homepage, and reports continue consuming provider-neutral intelligence models. They deliberately retain demo-safe presentation until complete persisted fixture/report records are available.
+Dry-run is the default. It reports the competition, stage, categories, mapping/enabled state, whether persisted competition data exists, estimated requests, requests already used, configured budget and remaining budget. It makes zero provider calls and performs no ingestion writes.
 
-## Environment variables
+A future non-dry execution requires all of the following: a privileged server client, provider enabled, credential configured, sufficient estimated budget, and the exact `CONSUME_PROVIDER_QUOTA` confirmation. Stage D remains plan-only at competition level because rich data must be selected by fixture instead of bulk-fetched.
 
-- `FOOTBALL_DATA_PROVIDER=disabled`
-- `FOOTBALL_DATA_PROVIDER_ENABLED=false`
-- `FOOTBALL_API_DAILY_REQUEST_BUDGET=100`
+## Idempotency, persistence and homepage readiness
 
-No API key variable is introduced in Batch 4C.
+Supabase upserts use provider/season or provider/entity IDs as conflict keys while keeping internal UUID primary keys. Repeating a competition, team, fixture or snapshot ingestion updates existing records and preserves internal identity. Standings are stored as normalized snapshots; scores and result status update existing fixture rows.
 
-## Migration and manual follow-up
+Persisted competitions, fixtures, results, snapshots and intelligence reports already provide the data boundary required for a future homepage repository. Direct provider calls are not needed or permitted from UI components.
 
-Apply `supabase/migrations/202608080002_batch_4c_football_ingestion.sql` to the Development project after review. It expands snapshot categories for odds metadata and adds the server-only request audit table with RLS and no public policies or grants.
+## Quota observability
+
+`getQuotaStatus()` reports requests used today, configured internal budget, remaining budget, cache hits, provider attempts, successes and failures. It uses the RLS-protected `football_provider_requests` audit table and is prepared for a future admin dashboard; it is not publicly exposed.
+
+## Manual activation checklist
+
+After approval in a future batch:
+
+1. Register and verify the chosen provider account without placing credentials in source control.
+2. Configure the encrypted server-only key in the target environment.
+3. Map and validate one competition and season at a time.
+4. Keep the internal daily budget below the provider plan allowance.
+5. Run dry-run and review its estimate.
+6. Supply a privileged Supabase client through a trusted manual runner.
+7. Execute one small stage with explicit confirmation and inspect audit/cache results.
+8. Expand competition/category coverage only after observed request usage is acceptable.
+
+A paid provider plan changes configuration and budget, not the public UI or provider-neutral service/repository contracts.
+
+## Database status
+
+No Batch 4E migration is required. Batch 4E reuses the existing `football_provider_requests`, normalized football tables and snapshot constraints introduced by the applied Batch 4A/4C migrations.

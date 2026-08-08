@@ -69,10 +69,19 @@ export class MemoryFootballIngestionRepository implements FootballIngestionRepos
     }
     return { competitions: 1, teams: payload.teams.length, fixtures: payload.fixtures.length, snapshots: payload.snapshots.length };
   }
+
+  async hasCompetitionData(provider: string, providerCompetitionId: string, season: string) {
+    return this.competitions.has(`${provider}:${providerCompetitionId}:${season}`);
+  }
 }
 
 export class MemoryProviderRequestRepository implements ProviderRequestRepository {
   readonly records: ProviderRequestRecord[] = [];
   async countRequests(provider: string, since: string) { return this.records.filter((item) => item.provider === provider && item.requestedAt >= since).reduce((sum, item) => sum + item.requestCount, 0); }
   async recordRequest(record: ProviderRequestRecord) { this.records.push(record); }
+  async getQuotaStatus(provider: string, since: string, configuredDailyBudget: number) {
+    const records = this.records.filter((item) => item.provider === provider && item.requestedAt >= since);
+    const requestsUsedToday = records.reduce((sum, item) => sum + item.requestCount, 0);
+    return { provider, requestsUsedToday, configuredDailyBudget, remainingBudget: Math.max(0, configuredDailyBudget - requestsUsedToday), cacheHits: records.filter((item) => item.requestCount === 0 && item.cacheState === "fresh").length, providerAttempts: requestsUsedToday, successes: records.filter((item) => item.succeeded).reduce((sum, item) => sum + item.requestCount, 0), failures: records.filter((item) => !item.succeeded).reduce((sum, item) => sum + item.requestCount, 0) };
+  }
 }
