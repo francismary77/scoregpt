@@ -10,6 +10,7 @@ export class FootballProviderUnavailableError extends Error {
 export class DisabledFootballDataProvider implements FootballDataProvider {
   readonly name = "disabled";
   readonly enabled = false;
+  readonly credentialConfigured = false;
   private unavailable(): never { throw new FootballProviderUnavailableError(); }
   async getFixtures() { return []; }
   async getFixture() { return null; }

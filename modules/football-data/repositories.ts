@@ -1,4 +1,4 @@
-import type { CompetitionIngestionPayload, NormalizedCompetition, NormalizedFixture, NormalizedSnapshot, NormalizedTeam, PersistedHomepageFootballData, ProviderQuotaStatus, ProviderRequestRecord, StoredSnapshot } from "./domain";
+import type { CompetitionCacheInspection, CompetitionIngestionPayload, NormalizedCompetition, NormalizedFixture, NormalizedSnapshot, NormalizedTeam, PersistedHomepageFootballData, ProviderQuotaStatus, ProviderRequestRecord, StoredSnapshot } from "./domain";
 
 export interface FootballIngestionRepository {
   upsertCompetition(provider: string, competition: NormalizedCompetition, syncedAt: string): Promise<string>;
@@ -8,12 +8,14 @@ export interface FootballIngestionRepository {
   getSnapshot(fixtureId: string, category: NormalizedSnapshot["category"], provider: string): Promise<StoredSnapshot | null>;
   ingestBundle(provider: string, payload: CompetitionIngestionPayload): Promise<{ competitions: number; teams: number; fixtures: number; snapshots: number }>;
   hasCompetitionData(provider: string, providerCompetitionId: string, season: string): Promise<boolean>;
+  inspectCompetition(provider: string, providerCompetitionId: string, season: string): Promise<CompetitionCacheInspection>;
 }
 
 export interface ProviderRequestRepository {
   countRequests(provider: string, since: string): Promise<number>;
   recordRequest(record: ProviderRequestRecord): Promise<void>;
   getQuotaStatus(provider: string, since: string, configuredDailyBudget: number): Promise<ProviderQuotaStatus>;
+  countAuditRows(provider: string, since: string): Promise<number>;
 }
 
 export interface PersistedFootballReadRepository {

@@ -131,6 +131,43 @@ export interface BootstrapPlanItem {
   estimatedRequests: number;
   eligible: boolean;
   reason: string;
+  season: string | null;
+  competitionEnabled: boolean;
+  requestedCategories: readonly string[];
+  providerRequestCategories: readonly string[];
+  cachedCategories: readonly string[];
+  staleCategories: readonly string[];
+  remainingBudgetBefore: number;
+  remainingBudgetAfter: number;
+  allowed: boolean;
+  blockedReason: string | null;
+  quotaWarning: string;
+}
+
+export interface CompetitionCacheInspection {
+  competitionCount: number;
+  teamCount: number;
+  fixtureCount: number;
+  snapshotCategories: string[];
+  freshCategories: string[];
+  staleCategories: string[];
+  providerReferences: string[];
+  lastFetchedAt: string | null;
+  duplicateWarnings: string[];
+  malformedWarnings: string[];
+}
+
+export interface FootballVerificationReport extends CompetitionCacheInspection {
+  provider: string;
+  competitionId: string;
+  competitionName: string;
+  providerCompetitionId: string | null;
+  season: string | null;
+  requestAuditRows: number;
+  requestsUsedToday: number;
+  configuredDailyBudget: number;
+  remainingBudget: number;
+  providerCallsMade: 0;
 }
 
 export interface BootstrapPlan {

@@ -6,32 +6,29 @@ import type { FootballIngestionRepository, ProviderRequestRepository } from "./r
 type Entity<T> = T & { id: string };
 
 export class MemoryFootballIngestionRepository implements FootballIngestionRepository {
-  readonly competitions = new Map<string, Entity<NormalizedCompetition>>();
-  readonly teams = new Map<string, Entity<NormalizedTeam> & { competitionId: string }>();
-  readonly fixtures = new Map<string, Entity<NormalizedFixture> & { competitionId: string; homeTeamId: string; awayTeamId: string }>();
+  readonly competitions = new Map<string, Entity<NormalizedCompetition> & { lastSyncedAt: string }>();
+  readonly teams = new Map<string, Entity<NormalizedTeam> & { competitionId: string; lastSyncedAt: string }>();
+  readonly fixtures = new Map<string, Entity<NormalizedFixture> & { competitionId: string; homeTeamId: string; awayTeamId: string; lastSyncedAt: string }>();
   readonly snapshots = new Map<string, StoredSnapshot>();
 
   async upsertCompetition(provider: string, item: NormalizedCompetition, syncedAt: string): Promise<string> {
-    void syncedAt;
     const key = `${provider}:${item.providerId}:${item.season}`;
     const id = this.competitions.get(key)?.id ?? randomUUID();
-    this.competitions.set(key, { ...item, id });
+    this.competitions.set(key, { ...item, id, lastSyncedAt: syncedAt });
     return id;
   }
 
   async upsertTeam(provider: string, item: NormalizedTeam, competitionId: string, syncedAt: string): Promise<string> {
-    void syncedAt;
     const key = `${provider}:${item.providerId}`;
     const id = this.teams.get(key)?.id ?? randomUUID();
-    this.teams.set(key, { ...item, competitionId, id });
+    this.teams.set(key, { ...item, competitionId, id, lastSyncedAt: syncedAt });
     return id;
   }
 
   async upsertFixture(provider: string, item: NormalizedFixture, competitionId: string, homeTeamId: string, awayTeamId: string, syncedAt: string): Promise<string> {
-    void syncedAt;
     const key = `${provider}:${item.providerId}`;
     const id = this.fixtures.get(key)?.id ?? randomUUID();
-    this.fixtures.set(key, { ...item, competitionId, homeTeamId, awayTeamId, id });
+    this.fixtures.set(key, { ...item, competitionId, homeTeamId, awayTeamId, id, lastSyncedAt: syncedAt });
     return id;
   }
 
@@ -73,6 +70,17 @@ export class MemoryFootballIngestionRepository implements FootballIngestionRepos
   async hasCompetitionData(provider: string, providerCompetitionId: string, season: string) {
     return this.competitions.has(`${provider}:${providerCompetitionId}:${season}`);
   }
+
+  async inspectCompetition(provider: string, providerCompetitionId: string, season: string) {
+    const competition = this.competitions.get(`${provider}:${providerCompetitionId}:${season}`);
+    if (!competition) return { competitionCount: 0, teamCount: 0, fixtureCount: 0, snapshotCategories: [], freshCategories: [], staleCategories: [], providerReferences: [], lastFetchedAt: null, duplicateWarnings: [], malformedWarnings: [] };
+    const teams = [...this.teams.values()].filter((item) => item.competitionId === competition.id);
+    const fixtures = [...this.fixtures.values()].filter((item) => item.competitionId === competition.id);
+    const fixtureIds = new Set(fixtures.map((item) => item.id));
+    const snapshots = [...this.snapshots.values()].filter((item) => fixtureIds.has(item.fixtureId));
+    const categories = [...new Set(snapshots.map((item) => item.category))];
+    return { competitionCount: 1, teamCount: teams.length, fixtureCount: fixtures.length, snapshotCategories: categories, freshCategories: [...new Set(snapshots.filter((item) => cacheState(item.provenance.expiresAt) === "fresh").map((item) => item.category))], staleCategories: [...new Set(snapshots.filter((item) => cacheState(item.provenance.expiresAt) === "stale").map((item) => item.category))], providerReferences: snapshots.flatMap((item) => item.provenance.providerReference ? [item.provenance.providerReference] : []), lastFetchedAt: [competition.lastSyncedAt, ...teams.map((item) => item.lastSyncedAt), ...fixtures.map((item) => item.lastSyncedAt), ...snapshots.map((item) => item.provenance.fetchedAt)].sort().at(-1) ?? null, duplicateWarnings: [], malformedWarnings: [...teams.filter((item) => !item.providerId || !item.name).map((item) => `Incomplete team ${item.id}.`), ...fixtures.filter((item) => !item.providerId || !item.homeTeamId || !item.awayTeamId).map((item) => `Incomplete fixture ${item.id}.`)] };
+  }
 }
 
 export class MemoryProviderRequestRepository implements ProviderRequestRepository {
@@ -84,4 +92,5 @@ export class MemoryProviderRequestRepository implements ProviderRequestRepositor
     const requestsUsedToday = records.reduce((sum, item) => sum + item.requestCount, 0);
     return { provider, requestsUsedToday, configuredDailyBudget, remainingBudget: Math.max(0, configuredDailyBudget - requestsUsedToday), cacheHits: records.filter((item) => item.requestCount === 0 && item.cacheState === "fresh").length, providerAttempts: requestsUsedToday, successes: records.filter((item) => item.succeeded).reduce((sum, item) => sum + item.requestCount, 0), failures: records.filter((item) => !item.succeeded).reduce((sum, item) => sum + item.requestCount, 0) };
   }
+  async countAuditRows(provider: string, since: string) { return this.records.filter((item) => item.provider === provider && item.requestedAt >= since).length; }
 }

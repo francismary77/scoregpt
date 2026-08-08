@@ -18,10 +18,10 @@ const coreCategories = ["metadata", "teams", "fixtures", "results", "standings"]
 
 export const footballCompetitions: readonly FootballCompetitionConfig[] = [
   { id: "premier-league", providerId: "39", name: "Premier League", country: "England", currentSeason: "2026", enabled: true, homepageFeatured: true, priority: 10, refreshPriority: "critical", dataCategories: coreCategories },
-  { id: "champions-league", providerId: "2", name: "UEFA Champions League", country: "Europe", currentSeason: "2026", enabled: true, homepageFeatured: true, priority: 20, refreshPriority: "high", dataCategories: coreCategories },
-  { id: "la-liga", providerId: "140", name: "La Liga", country: "Spain", currentSeason: "2026", enabled: true, homepageFeatured: true, priority: 30, refreshPriority: "high", dataCategories: coreCategories },
-  { id: "serie-a", providerId: "135", name: "Serie A", country: "Italy", currentSeason: "2026", enabled: true, homepageFeatured: false, priority: 40, refreshPriority: "normal", dataCategories: coreCategories },
-  { id: "bundesliga", providerId: "78", name: "Bundesliga", country: "Germany", currentSeason: "2026", enabled: true, homepageFeatured: false, priority: 50, refreshPriority: "normal", dataCategories: coreCategories },
+  { id: "champions-league", providerId: "2", name: "UEFA Champions League", country: "Europe", currentSeason: "2026", enabled: false, homepageFeatured: true, priority: 20, refreshPriority: "high", dataCategories: coreCategories },
+  { id: "la-liga", providerId: "140", name: "La Liga", country: "Spain", currentSeason: "2026", enabled: false, homepageFeatured: true, priority: 30, refreshPriority: "high", dataCategories: coreCategories },
+  { id: "serie-a", providerId: "135", name: "Serie A", country: "Italy", currentSeason: "2026", enabled: false, homepageFeatured: false, priority: 40, refreshPriority: "normal", dataCategories: coreCategories },
+  { id: "bundesliga", providerId: "78", name: "Bundesliga", country: "Germany", currentSeason: "2026", enabled: false, homepageFeatured: false, priority: 50, refreshPriority: "normal", dataCategories: coreCategories },
   ...[
     ["europa-league", "UEFA Europa League", "Europe"], ["conference-league", "UEFA Conference League", "Europe"], ["fa-cup", "FA Cup", "England"], ["efl-cup", "EFL Cup", "England"], ["championship", "EFL Championship", "England"],
     ["ligue-1", "Ligue 1", "France"], ["eredivisie", "Eredivisie", "Netherlands"], ["primeira-liga", "Primeira Liga", "Portugal"], ["belgian-pro-league", "Belgian Pro League", "Belgium"], ["scottish-premiership", "Scottish Premiership", "Scotland"],
@@ -41,7 +41,7 @@ function positiveInteger(value: string | undefined, fallback: number): number {
 export const footballDataConfig = {
   provider: process.env.FOOTBALL_DATA_PROVIDER?.trim() || "disabled",
   liveProviderEnabled: process.env.FOOTBALL_DATA_PROVIDER_ENABLED === "true",
-  dailyRequestBudget: positiveInteger(process.env.FOOTBALL_API_DAILY_REQUEST_BUDGET, 10),
+  dailyRequestBudget: positiveInteger(process.env.FOOTBALL_API_DAILY_REQUEST_BUDGET, 30),
   dryRun: process.env.FOOTBALL_INGESTION_DRY_RUN !== "false",
   competitions: footballCompetitions,
 } as const;

@@ -20,7 +20,7 @@ The checked-in defaults are:
 FOOTBALL_DATA_PROVIDER=disabled
 FOOTBALL_DATA_PROVIDER_ENABLED=false
 FOOTBALL_API_KEY=
-FOOTBALL_API_DAILY_REQUEST_BUDGET=10
+FOOTBALL_API_DAILY_REQUEST_BUDGET=30
 FOOTBALL_INGESTION_DRY_RUN=true
 ```
 
@@ -51,7 +51,7 @@ Freshness remains conservative:
 
 `config/football-data.ts` is the single rollout registry for 30 top leagues and competitions. Each entry contains an internal ID, nullable provider ID, name, country/region, nullable current season, priority, enabled state, homepage feature state, category list and refresh priority.
 
-The five previously configured demonstration competitions retain their documented API-Football mappings. The other 25 entries are disabled and deliberately have no invented provider IDs or seasons. Adding a name to the registry does not claim live coverage. Competitions should be mapped, validated and enabled gradually after the provider account is approved.
+Only the Premier League is enabled as the candidate for the first controlled bootstrap. Its existing documented API-Football league ID is `39`; the operator must still confirm that mapping and the current season in the API-Football dashboard before execution. The other 29 competitions remain disabled. Previously documented mappings may remain in configuration for later review, but they are not activation authorization. Adding a name or mapping to the registry does not claim live coverage.
 
 ## Manual bootstrap and dry-run
 
@@ -64,7 +64,7 @@ Bootstrap stages are:
 - Stage C: recent results and standings;
 - Stage D: selective rich fixture categories after persisted fixtures are reviewed.
 
-Dry-run is the default. It reports the competition, stage, categories, mapping/enabled state, whether persisted competition data exists, estimated requests, requests already used, configured budget and remaining budget. It makes zero provider calls and performs no ingestion writes.
+Dry-run is the default. `Premier League Bootstrap — Stage A` requests only competition/season metadata and teams. A cold-cache run is estimated at two provider requests; fresh cache can reduce that estimate to zero. Preflight reports competition identity, provider mapping, season, enabled state, requested/cached/stale categories, estimated requests, requests used today, the budget before and after execution, eligibility, a precise block reason and an explicit quota warning. It makes zero provider calls and performs no ingestion writes.
 
 A future non-dry execution requires all of the following: a privileged server client, provider enabled, credential configured, sufficient estimated budget, and the exact `CONSUME_PROVIDER_QUOTA` confirmation. Stage D remains plan-only at competition level because rich data must be selected by fixture instead of bulk-fetched.
 
@@ -78,18 +78,27 @@ Persisted competitions, fixtures, results, snapshots and intelligence reports al
 
 `getQuotaStatus()` reports requests used today, configured internal budget, remaining budget, cache hits, provider attempts, successes and failures. It uses the RLS-protected `football_provider_requests` audit table and is prepared for a future admin dashboard; it is not publicly exposed.
 
-## Manual activation checklist
+## Free-plan quota policy
 
-After approval in a future batch:
+The current API-Football FREE PLAN limit is 100 requests per day. The application-side ceiling is deliberately lower at 30 requests per day, reserving capacity for provider-dashboard checks and debugging. These are separate controls: API-Football enforces its plan quota, while the application blocks estimated work beyond its configured internal budget. The internal ceiling may be changed manually later after review; it must not silently follow or rise to the provider limit.
 
-1. Register and verify the chosen provider account without placing credentials in source control.
-2. Configure the encrypted server-only key in the target environment.
-3. Map and validate one competition and season at a time.
-4. Keep the internal daily budget below the provider plan allowance.
-5. Run dry-run and review its estimate.
-6. Supply a privileged Supabase client through a trusted manual runner.
-7. Execute one small stage with explicit confirmation and inspect audit/cache results.
-8. Expand competition/category coverage only after observed request usage is acceptable.
+## First-ingestion operator runbook
+
+1. Register the API-Football account. **Complete.**
+2. Confirm the FREE PLAN allowance. **Currently 100 requests/day.**
+3. Add `FOOTBALL_API_KEY` only to the chosen encrypted server environment. Never use a `NEXT_PUBLIC_` variable.
+4. Set `FOOTBALL_DATA_PROVIDER=api-football`, `FOOTBALL_DATA_PROVIDER_ENABLED=true`, and `FOOTBALL_API_DAILY_REQUEST_BUDGET=30` in that server environment.
+5. Confirm Premier League provider ID `39` and the current season directly in API-Football.
+6. Invoke `runManualFootballBootstrap()` with Stage A, Premier League, and `dryRun: true`. This performs zero provider requests.
+7. Review requested/cached/stale categories, the estimated request count, audit usage, and remaining internal budget.
+8. Only after explicit human approval, invoke the same trusted server-side runner with `dryRun: false` and confirmation `CONSUME_PROVIDER_QUOTA`.
+9. Check the API-Football dashboard for actual request consumption.
+10. Run `runManualFootballVerification()`; it reads Supabase and the internal audit only and reports `providerCallsMade: 0`.
+11. Inspect normalized competition/team records in Supabase, including provider IDs, provenance and timestamps.
+12. Inspect the homepage, Match Centre and Premier League page. They read persistence and never call the provider.
+13. Do not enable or ingest another competition until every check passes.
+
+Live execution rejects a missing/incorrect confirmation, disabled provider, missing credential, missing/invalid provider ID, invalid season, Stage D bulk operation, and estimated budget overflow. There is no public ingestion route, cron, page-triggered ingestion, or browser execution path.
 
 A paid provider plan changes configuration and budget, not the public UI or provider-neutral service/repository contracts.
 

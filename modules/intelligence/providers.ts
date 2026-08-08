@@ -3,6 +3,7 @@ import type { CompetitionIngestionPayload, FixtureRefreshPayload } from "@/modul
 export interface FootballDataProvider {
   readonly name: string;
   readonly enabled: boolean;
+  readonly credentialConfigured?: boolean;
   getFixtures(date?: string): Promise<Fixture[]>;
   getFixture(id: string): Promise<Fixture | null>;
   getTeamForm(teamId: string): Promise<TeamForm>;
