@@ -51,6 +51,7 @@ export class MemoryFootballIngestionRepository implements FootballIngestionRepos
     const competitionId = await this.upsertCompetition(provider, payload.competition, payload.fetchedAt);
     const teamIds = new Map<string, string>();
     for (const team of payload.teams) teamIds.set(team.providerId, await this.upsertTeam(provider, team, competitionId, payload.fetchedAt));
+    for (const team of this.teams.values()) if (team.competitionId === competitionId && !teamIds.has(team.providerId)) teamIds.set(team.providerId, team.id);
     const fixtureIds = new Map<string, string>();
     for (const fixture of payload.fixtures) {
       const home = teamIds.get(fixture.homeTeamProviderId);

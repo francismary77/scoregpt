@@ -50,12 +50,19 @@ test("idempotent ingestion deduplicates provider IDs while retaining internal UU
   assert.match(stored.id, /^[0-9a-f-]{36}$/i);
 });
 
+test("fixture-only ingestion links teams already persisted by Stage A", async () => {
+  const repository = new MemoryFootballIngestionRepository();
+  await repository.ingestBundle("future-provider", { competition, teams, fixtures: [], snapshots: [], fetchedAt });
+  await repository.ingestBundle("future-provider", { competition, teams: [], fixtures: [fixture], snapshots: [snapshot], fetchedAt });
+  assert.equal(repository.teams.size, 2); assert.equal(repository.fixtures.size, 1); assert.equal(repository.snapshots.size, 1);
+});
+
 test("disabled competitions and disabled provider degrade without external calls", async () => {
   const repository = new MemoryFootballIngestionRepository();
   const requests = new MemoryProviderRequestRepository();
   const service = new FootballDataIngestionService(new DisabledFootballDataProvider(), repository, requests, [{ ...footballCompetitions[0], enabled: false }], 1);
   assert.equal((await service.ingestCompetition("premier-league")).status, "skipped");
-  const enabledService = new FootballDataIngestionService(new DisabledFootballDataProvider(), repository, requests, [footballCompetitions[0]], 1);
+  const enabledService = new FootballDataIngestionService(new DisabledFootballDataProvider(), repository, requests, [{ ...footballCompetitions[0], enabled: true }], 1);
   assert.equal((await enabledService.ingestCompetition("premier-league")).status, "degraded");
   assert.equal(requests.records.length, 0);
 });

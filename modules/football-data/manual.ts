@@ -9,6 +9,8 @@ import type { BootstrapStage } from "./domain";
 import { getServerFootballProviderConfig } from "./server-config";
 import { FootballDataIngestionService } from "./service";
 import { createFootballVerificationReport } from "./verification";
+import { discoverScottishPremiership } from "./discovery";
+import { runProviderAuthenticationCheck } from "./authentication";
 
 export async function runManualFootballBootstrap(options: {
   privilegedClient: SupabaseClient<Database>;
@@ -29,4 +31,14 @@ export async function runManualFootballBootstrap(options: {
 export async function runManualFootballVerification(options: { privilegedClient: SupabaseClient<Database>; competitionId?: string }) {
   const config = getServerFootballProviderConfig(), repository = new SupabaseFootballIngestionRepository(options.privilegedClient), requests = new SupabaseProviderRequestRepository(options.privilegedClient);
   return createFootballVerificationReport(repository, requests, footballDataConfig.competitions, options.competitionId ?? "premier-league", "api-football", config.dailyRequestBudget);
+}
+
+export async function runManualScottishPremiershipDiscovery(options: { privilegedClient: SupabaseClient<Database>; confirmation: string; season?: string }) {
+  const config = getServerFootballProviderConfig(), provider = new ApiFootballProvider({ apiKey: config.apiKey, enabled: config.enabled }), requests = new SupabaseProviderRequestRepository(options.privilegedClient);
+  return discoverScottishPremiership({ provider, requests, dailyBudget: config.dailyRequestBudget, confirmation: options.confirmation, season: options.season });
+}
+
+export async function runManualProviderAuthenticationCheck(options: { privilegedClient: SupabaseClient<Database>; confirmation: string }) {
+  const config = getServerFootballProviderConfig(), provider = new ApiFootballProvider({ apiKey: config.apiKey, enabled: config.enabled }), requests = new SupabaseProviderRequestRepository(options.privilegedClient);
+  return runProviderAuthenticationCheck({ provider, requests, dailyBudget: config.dailyRequestBudget, confirmation: options.confirmation });
 }

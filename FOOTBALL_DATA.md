@@ -10,6 +10,8 @@ The controlled flow is:
 
 `ApiFootballProvider` owns API-Football endpoints, headers, timeouts, response validation and raw response types. It returns only normalized competitions, teams, fixtures, scores and provider-neutral snapshots. Provider JSON never enters React components or public business logic. The homepage, Match Centre, Results and report pages read existing intelligence/repository data and cannot invoke ingestion.
 
+API-level errors inside HTTP 200 responses are failures and are classified from structured provider error keys before sanitized message text. Categories distinguish authentication, quota/rate limit, subscription or plan access, invalid parameters, invalid/unavailable seasons, generic provider failures and malformed responses. The exact configured credential and credential-like strings are redacted from safe diagnostics. Audit rows store only a stable sanitized error code; authentication headers and raw provider envelopes are never logged or persisted.
+
 The adapter supports the provider endpoints needed for competition/season metadata, teams, fixtures and statuses, scores/results, standings, recent team form, head-to-head fixtures, injuries, lineups, match statistics and odds metadata. Rich fixture categories are fetched individually so a request for one category does not consume the complete set.
 
 ## Disabled-by-default and credentials
@@ -51,7 +53,7 @@ Freshness remains conservative:
 
 `config/football-data.ts` is the single rollout registry for 30 top leagues and competitions. Each entry contains an internal ID, nullable provider ID, name, country/region, nullable current season, priority, enabled state, homepage feature state, category list and refresh priority.
 
-Only the Premier League is enabled as the candidate for the first controlled bootstrap. Its existing documented API-Football league ID is `39`; the operator must still confirm that mapping and the current season in the API-Football dashboard before execution. The other 29 competitions remain disabled. Previously documented mappings may remain in configuration for later review, but they are not activation authorization. Adding a name or mapping to the registry does not claim live coverage.
+For the controlled Batch 4H development phase, only the Scottish Premiership is enabled. A tightly filtered API-Football response verified league ID `179`, type `League`, for Scotland. Season `2024` is explicitly a Free-plan development/test season; it is not the intended production season. Production remains dependent on current-season access under an appropriate API-Football subscription. Premier League and the other 28 competitions remain disabled. Previously documented mappings may remain in configuration for later review, but they are not activation authorization. Adding a name or mapping to the registry does not claim live coverage.
 
 ## Manual bootstrap and dry-run
 
@@ -105,3 +107,15 @@ A paid provider plan changes configuration and budget, not the public UI or prov
 ## Database status
 
 No Batch 4E migration is required. Batch 4E reuses the existing `football_provider_requests`, normalized football tables and snapshot constraints introduced by the applied Batch 4A/4C migrations.
+
+## Provider-free historical intelligence
+
+9jaFootballAI reconstructs **Calculated Historical Standings** and team intelligence from normalized completed fixtures already persisted in Supabase. These tables are descriptive calculations (three points for a win, one for a draw), not official provider standings. Sorting uses points, goal difference and goals scored; unavailable provider-specific tie-breakers are not invented.
+
+The historical engine loads a competition, teams, fixtures and normalized round metadata as one bounded dataset, then calculates standings, home/away and recent form, goal trends, head-to-head summaries and raw form-strength features in memory. It consumes no API-Football response objects and generates no predictions.
+
+Participant classification uses persisted round metadata. Teams appearing in normal competition rounds are `regular`; teams appearing only in explicitly labelled playoff/relegation rounds are `playoff_only`; insufficient evidence yields `unknown`. All records remain preserved. The Scottish Premiership 2024 calculated regular table contains 12 league participants, while Ayr Utd, Livingston and Partick remain available as playoff participants.
+
+`MatchAnalysisInput` combines both team profiles, venue-relevant form, recent-N form, goal trends, H2H history, latest-data date and deterministic data-completeness metadata. It is an internal historical-analysis contract for a future intelligence provider, not a probability, prediction or betting recommendation.
+
+Season 2024 remains development/test data only. Current production-season analysis requires appropriate provider access and separately authorized ingestion.

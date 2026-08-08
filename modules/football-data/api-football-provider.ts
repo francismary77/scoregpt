@@ -9,16 +9,25 @@ import { FootballProviderUnavailableError } from "./providers";
 type Transport = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 type ApiObject = Record<string, unknown>;
 interface ApiEnvelope { response?: unknown; errors?: unknown; paging?: unknown; }
+export interface ApiFootballCompetitionCandidate { providerId: string; name: string; country: string; type: string | null; seasons: Array<{ year: string; start: string; end: string; current: boolean }> }
 
 export class MissingFootballProviderKeyError extends FootballProviderUnavailableError {
   constructor() { super("The football provider credential is not configured."); this.name = "MissingFootballProviderKeyError"; }
 }
 export class FootballProviderResponseError extends Error {
   requestCount: number;
-  constructor(message: string, requestCount = 1) { super(message); this.name = "FootballProviderResponseError"; this.requestCount = requestCount; }
+  httpStatus: number | null;
+  providerCategory: "authentication" | "quota" | "subscription" | "invalid-request" | "invalid-season" | "provider-api" | "malformed-response";
+  providerCode: string;
+  safeDiagnostic: string;
+  constructor(message: string, requestCount = 1, httpStatus: number | null = null, providerCategory: FootballProviderResponseError["providerCategory"] = "provider-api", providerCode = "provider_api_error", safeDiagnostic = message) { super(message); this.name = "FootballProviderResponseError"; this.requestCount = requestCount; this.httpStatus = httpStatus; this.providerCategory = providerCategory; this.providerCode = providerCode; this.safeDiagnostic = safeDiagnostic; }
 }
-export class FootballProviderAuthenticationError extends FootballProviderResponseError { constructor() { super("Provider authentication failed."); this.name = "FootballProviderAuthenticationError"; } }
-export class FootballProviderRateLimitError extends FootballProviderResponseError { constructor() { super("Provider rate limit rejected the request."); this.name = "FootballProviderRateLimitError"; } }
+export class FootballProviderAuthenticationError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "Provider rejected the configured credential.") { super("Provider authentication failed.", 1, httpStatus, "authentication", "authentication_failed", diagnostic); this.name = "FootballProviderAuthenticationError"; } }
+export class FootballProviderRateLimitError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "Provider quota or rate limit rejected the request.") { super("Provider rate limit rejected the request.", 1, httpStatus, "quota", "quota_exceeded", diagnostic); this.name = "FootballProviderRateLimitError"; } }
+export class FootballProviderAccessError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "The provider plan does not allow this data request.") { super("Provider subscription or access restriction.", 1, httpStatus, "subscription", "subscription_access_restricted", diagnostic); this.name = "FootballProviderAccessError"; } }
+export class FootballProviderInvalidRequestError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "Provider rejected one or more request parameters.") { super("Provider rejected the request parameters.", 1, httpStatus, "invalid-request", "invalid_request", diagnostic); this.name = "FootballProviderInvalidRequestError"; } }
+export class FootballProviderSeasonError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "The requested season is invalid or unavailable.") { super("Provider season is invalid or unavailable.", 1, httpStatus, "invalid-season", "invalid_or_unavailable_season", diagnostic); this.name = "FootballProviderSeasonError"; } }
+export class MalformedFootballProviderResponseError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "Provider returned an unexpected response structure.") { super("Provider returned a malformed response.", 1, httpStatus, "malformed-response", "malformed_response", diagnostic); this.name = "MalformedFootballProviderResponseError"; } }
 export class EmptyFootballProviderResponseError extends FootballProviderResponseError { constructor() { super("Provider returned no records for required foundational data."); this.name = "EmptyFootballProviderResponseError"; } }
 
 export interface ApiFootballProviderOptions {
@@ -35,6 +44,27 @@ function array(value: unknown): unknown[] { return Array.isArray(value) ? value 
 function text(value: unknown): string { return typeof value === "string" || typeof value === "number" ? String(value) : ""; }
 function numberOrNull(value: unknown): number | null { return typeof value === "number" && Number.isFinite(value) ? value : null; }
 function json(value: unknown): Json { return JSON.parse(JSON.stringify(value ?? null)) as Json; }
+type SafeProviderError = { key: string; message: string };
+function sanitizeDiagnostic(value: unknown, secret: string | null): string {
+  let result = text(value).replace(/[\r\n\t]+/g, " ").trim();
+  if (secret) result = result.replaceAll(secret, "[redacted]");
+  result = result.replace(/(x-apisports-key|api[_ -]?key|token|authorization)\s*[:=]\s*[^\s,;]+/gi, "$1=[redacted]").replace(/\b[A-Za-z0-9_-]{32,}\b/g, "[redacted]");
+  return result.slice(0, 240) || "Provider returned an unspecified API error.";
+}
+function providerErrors(value: unknown, secret: string | null): SafeProviderError[] {
+  if (Array.isArray(value)) return value.map((item, index) => ({ key: `error_${index + 1}`, message: sanitizeDiagnostic(typeof item === "object" ? JSON.stringify(item) : item, secret) }));
+  return Object.entries(object(value)).map(([key, message]) => ({ key: key.toLowerCase(), message: sanitizeDiagnostic(message, secret) }));
+}
+function classifyProviderErrors(errors: SafeProviderError[], httpStatus: number): FootballProviderResponseError {
+  const keys = errors.map((item) => item.key).join(" "), messages = errors.map((item) => item.message).join(" "), evidence = `${keys} ${messages}`.toLowerCase(), diagnostic = errors.map((item) => `${item.key}: ${item.message}`).join("; ").slice(0, 500);
+  if (httpStatus === 401 || httpStatus === 403 || /(?:^|\s)(?:token|api[_-]?key|authentication|authorization)(?:\s|$)/.test(keys) || /invalid (?:api )?key|missing (?:api )?key|authentication failed|unauthorized|not authenticated/.test(evidence)) return new FootballProviderAuthenticationError(httpStatus, diagnostic);
+  if (httpStatus === 429 || /rate|quota|requests?/.test(keys) || /rate limit|quota exceeded|request limit|too many requests/.test(evidence)) return new FootballProviderRateLimitError(httpStatus, diagnostic);
+  if (/plan|subscription|access|coverage/.test(keys) || /not available (?:on|for).*plan|subscription|plan does not|access (?:is )?(?:denied|restricted)|not included/.test(evidence)) return new FootballProviderAccessError(httpStatus, diagnostic);
+  if (/season/.test(keys) || /invalid season|season.*(?:not available|unsupported|not found)/.test(evidence)) return new FootballProviderSeasonError(httpStatus, diagnostic);
+  if (/parameter|parameters|country|league|search|fixture|team|date/.test(keys) || /invalid parameter|missing parameter|bad request/.test(evidence)) return new FootballProviderInvalidRequestError(httpStatus, diagnostic);
+  return new FootballProviderResponseError("Provider returned an API-level error response.", 1, httpStatus, "provider-api", "provider_api_error", diagnostic);
+}
+export function safeProviderErrorDetails(error: unknown) { return error instanceof FootballProviderResponseError ? { category: error.providerCategory, code: error.providerCode, message: error.safeDiagnostic, httpStatus: error.httpStatus } : { category: "provider-api" as const, code: "provider_api_error", message: "Provider operation failed.", httpStatus: null }; }
 
 function normalizeApiFixture(value: unknown): NormalizedFixture {
   const row = object(value), fixture = object(row.fixture), league = object(row.league), teams = object(row.teams), goals = object(row.goals);
@@ -42,6 +72,12 @@ function normalizeApiFixture(value: unknown): NormalizedFixture {
     id: text(fixture.id), competitionId: text(league.id), homeTeamId: text(object(teams.home).id), awayTeamId: text(object(teams.away).id),
     kickoffAt: text(fixture.date), status: text(object(fixture.status).short), homeScore: numberOrNull(goals.home), awayScore: numberOrNull(goals.away),
   });
+}
+
+function normalizeFixtureMetadata(value: unknown, fixtureProviderId: string, fetchedAt: string, providerReference: string): NormalizedSnapshot {
+  const row = object(value), fixture = object(row.fixture), league = object(row.league), score = object(row.score), venue = object(fixture.venue), status = object(fixture.status);
+  const scorePart = (name: string) => { const part = object(score[name]); return { home: numberOrNull(part.home), away: numberOrNull(part.away) }; };
+  return { fixtureProviderId, category: "other", payload: json({ round: text(league.round) || null, venue: { id: text(venue.id) || null, name: text(venue.name) || null, city: text(venue.city) || null }, referee: text(fixture.referee) || null, timezone: text(fixture.timezone) || null, status: { long: text(status.long) || null, short: text(status.short) || null, elapsed: numberOrNull(status.elapsed) }, score: { halftime: scorePart("halftime"), fulltime: scorePart("fulltime"), extratime: scorePart("extratime"), penalty: scorePart("penalty") } }), providerReference, fetchedAt };
 }
 
 function normalizeCategory(category: NormalizedSnapshot["category"], rows: unknown[]): Json {
@@ -83,6 +119,32 @@ export class ApiFootballProvider implements FootballDataProvider {
   async getCompetition(): Promise<Competition | null> { return null; }
   async getResult(): Promise<Fixture | null> { return null; }
 
+  async discoverCompetitions(parameters: { country: string; season: string; search?: string }): Promise<ApiFootballCompetitionCandidate[]> {
+    const rows = await this.request("leagues", parameters, true);
+    return rows.map((row) => { const item = object(row), league = object(item.league), country = object(item.country), providerId = normalizeProviderId(text(league.id)), name = text(league.name).trim(), countryName = text(country.name).trim(); if (!name || !countryName) throw new FootballProviderResponseError("Provider returned incomplete competition identity."); return { providerId, name, country: countryName, type: text(league.type) || null, seasons: array(item.seasons).map((value) => { const season = object(value); return { year: text(season.year), start: text(season.start), end: text(season.end), current: season.current === true }; }) }; });
+  }
+
+  async checkAuthentication(): Promise<{ httpStatus: number; keyAccepted: true; dailyLimit: number | null; dailyRemaining: number | null }> {
+    if (!this.enabled) throw new FootballProviderUnavailableError();
+    if (!this.apiKey) throw new MissingFootballProviderKeyError();
+    const url = new URL("status", `${this.baseUrl}/`), controller = new AbortController(), timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const response = await this.transport(url, { headers: { "x-apisports-key": this.apiKey }, signal: controller.signal });
+      if (response.status === 401 || response.status === 403) throw new FootballProviderAuthenticationError(response.status);
+      if (response.status === 429) throw new FootballProviderRateLimitError(response.status);
+      if (!response.ok) throw new FootballProviderResponseError(`Provider returned HTTP ${response.status}.`, 1, response.status);
+      const body = await response.json() as ApiEnvelope, errors = providerErrors(body?.errors, this.apiKey);
+      if (errors.length) throw classifyProviderErrors(errors, response.status);
+      if (!body || typeof body !== "object" || !("response" in body)) throw new MalformedFootballProviderResponseError(response.status, "Provider status response did not include a response field.");
+      const numberHeader = (...names: string[]) => { for (const name of names) { const value = response.headers.get(name); if (value !== null) { const parsed = Number.parseInt(value, 10); if (Number.isFinite(parsed)) return parsed; } } return null; };
+      return { httpStatus: response.status, keyAccepted: true, dailyLimit: numberHeader("x-ratelimit-requests-limit", "x-ratelimit-limit"), dailyRemaining: numberHeader("x-ratelimit-requests-remaining", "x-ratelimit-remaining") };
+    } catch (error) {
+      if (error instanceof FootballProviderResponseError) throw error;
+      if (error instanceof SyntaxError) throw new MalformedFootballProviderResponseError(null, "Provider response was not valid JSON.");
+      throw new FootballProviderResponseError(error instanceof Error && error.name === "AbortError" ? "Provider request timed out." : "Provider authentication check failed.");
+    } finally { clearTimeout(timeout); }
+  }
+
   private async request(path: string, parameters: Record<string, string>, requireRows = false): Promise<unknown[]> {
     if (!this.enabled) throw new FootballProviderUnavailableError();
     if (!this.apiKey) throw new MissingFootballProviderKeyError();
@@ -90,22 +152,18 @@ export class ApiFootballProvider implements FootballDataProvider {
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const response = await this.transport(url, { headers: { "x-apisports-key": this.apiKey }, signal: controller.signal });
-      if (response.status === 401 || response.status === 403) throw new FootballProviderAuthenticationError();
-      if (response.status === 429) throw new FootballProviderRateLimitError();
+      if (response.status === 401 || response.status === 403) throw new FootballProviderAuthenticationError(response.status);
+      if (response.status === 429) throw new FootballProviderRateLimitError(response.status);
       if (!response.ok) throw new FootballProviderResponseError(`Provider returned HTTP ${response.status}.`);
-      const body = await response.json() as ApiEnvelope, errors = Array.isArray(body.errors) ? body.errors : Object.values(object(body.errors));
-      if (errors.length) {
-        const joined = errors.map((item) => text(item)).join(" ").toLowerCase();
-        if (/rate|limit|quota/.test(joined)) throw new FootballProviderRateLimitError();
-        if (/auth|key|token|access/.test(joined)) throw new FootballProviderAuthenticationError();
-        throw new FootballProviderResponseError("Provider returned an API-level error response.");
-      }
-      if (!Array.isArray(body.response)) throw new FootballProviderResponseError("Provider response array is missing or malformed.");
-      if (body.paging !== undefined) { const paging = object(body.paging), current = numberOrNull(paging.current), total = numberOrNull(paging.total); if (current === null || total === null || current < 1 || total < 1 || current > total) throw new FootballProviderResponseError("Provider returned an unexpected pagination state."); }
+      const body = await response.json() as ApiEnvelope, errors = providerErrors(body?.errors, this.apiKey);
+      if (errors.length) throw classifyProviderErrors(errors, response.status);
+      if (!Array.isArray(body.response)) throw new MalformedFootballProviderResponseError(response.status, "Provider response array is missing or malformed.");
+      if (body.paging !== undefined) { const paging = object(body.paging), current = numberOrNull(paging.current), total = numberOrNull(paging.total); if (current === null || total === null || current < 1 || total < 1 || current > total) throw new MalformedFootballProviderResponseError(response.status, "Provider pagination values were invalid."); }
       if (requireRows && body.response.length === 0) throw new EmptyFootballProviderResponseError();
       return body.response;
     } catch (error) {
       if (error instanceof FootballProviderResponseError) throw error;
+      if (error instanceof SyntaxError) throw new MalformedFootballProviderResponseError(null, "Provider response was not valid JSON.");
       throw new FootballProviderResponseError(error instanceof Error && error.name === "AbortError" ? "Provider request timed out." : "Provider request failed.");
     } finally { clearTimeout(timeout); }
   }
@@ -119,12 +177,13 @@ export class ApiFootballProvider implements FootballDataProvider {
       const teamRows = categorySet.has("teams") ? (requestCount++, await this.request("teams", { league: providerCompetitionId, season }, true)) : [];
       const fixtureRows = categorySet.has("fixtures") || categorySet.has("results") ? (requestCount++, await this.request("fixtures", { league: providerCompetitionId, season })) : [];
       const standingRows = categorySet.has("standings") ? (requestCount++, await this.request("standings", { league: providerCompetitionId, season })) : [];
-      const leagueRow = object(leagueRows[0]), league = object(leagueRow.league), country = object(leagueRow.country), fetchedAt = this.now().toISOString();
+      const leagueRow = object(leagueRows[0] ?? fixtureRows[0]), league = object(leagueRow.league), country = object(leagueRow.country), fetchedAt = this.now().toISOString();
       if (leagueRows.length) { const returnedLeagueId = text(object(object(leagueRows[0]).league).id); if (!returnedLeagueId || returnedLeagueId !== providerCompetitionId) throw new FootballProviderResponseError("Provider competition metadata did not match the requested competition."); }
       const fixtures = fixtureRows.map(normalizeApiFixture);
-      const snapshots: NormalizedSnapshot[] = standingRows.length && fixtures[0] ? [{ fixtureProviderId: fixtures[0].providerId, category: "standings", payload: normalizeCategory("standings", standingRows), providerReference: `standings?league=${providerCompetitionId}&season=${season}`, fetchedAt }] : [];
+      const snapshots: NormalizedSnapshot[] = categorySet.has("fixtures") || categorySet.has("results") ? fixtureRows.map((row, index) => normalizeFixtureMetadata(row, fixtures[index].providerId, fetchedAt, `fixtures?league=${providerCompetitionId}&season=${season}`)) : [];
+      if (standingRows.length && fixtures[0]) snapshots.push({ fixtureProviderId: fixtures[0].providerId, category: "standings", payload: normalizeCategory("standings", standingRows), providerReference: `standings?league=${providerCompetitionId}&season=${season}`, fetchedAt });
       return {
-        competition: { providerId: providerCompetitionId, name: text(league.name) || `Competition ${providerCompetitionId}`, country: text(country.name) || null, season, enabled: true, priority: 100 },
+        competition: { providerId: providerCompetitionId, name: text(league.name) || `Competition ${providerCompetitionId}`, country: text(country.name) || text(league.country) || null, season, enabled: true, priority: 100, providerType: text(league.type) || null },
         teams: teamRows.map((row) => { const item = object(row), team = object(item.team), providerId = normalizeProviderId(text(team.id)), name = text(team.name).trim(); if (!name) throw new FootballProviderResponseError("Provider returned an incomplete team record."); return { providerId, competitionProviderId: providerCompetitionId, name, shortName: text(team.code) || null, logoUrl: text(team.logo) || null, country: text(team.country) || null }; }),
         fixtures, snapshots, fetchedAt, requestCount,
       };

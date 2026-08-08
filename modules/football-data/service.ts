@@ -39,12 +39,15 @@ export class FootballDataIngestionService {
     if (!(await this.hasBudget(estimatedRequests))) return { status: "skipped", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Daily provider request budget would be exceeded." };
     try {
       const payload = await this.provider.fetchCompetitionData(config.providerId, config.currentSeason, categories);
+      const expectedName = (config.providerName ?? config.name).trim().toLowerCase(), receivedName = payload.competition.name.trim().toLowerCase();
+      if (payload.competition.providerId !== config.providerId || payload.competition.season !== config.currentSeason || payload.competition.country?.trim().toLowerCase() !== config.country.trim().toLowerCase() || receivedName !== expectedName || (categories.includes("metadata") && config.providerType && payload.competition.providerType !== config.providerType)) throw Object.assign(new Error("Provider competition identity did not match the verified configuration."), { name: "ProviderCompetitionIdentityError", requestCount: payload.requestCount ?? estimatedRequests });
       const counts = await this.repository.ingestBundle(this.provider.name, payload);
       await this.record("competition", "competition-bundle", true, "missing", reason, null, payload.requestCount ?? estimatedRequests);
       return { status: "completed", provider: this.provider.name, ...counts };
     } catch (error) {
       const requestCount = typeof error === "object" && error && "requestCount" in error && typeof error.requestCount === "number" ? error.requestCount : error instanceof Error && error.name === "MissingFootballProviderKeyError" ? 0 : 1;
-      await this.record("competition", "competition-bundle", false, "missing", reason, error instanceof Error ? error.name : "ProviderError", requestCount);
+      const errorCode = typeof error === "object" && error && "providerCode" in error && typeof error.providerCode === "string" ? error.providerCode : error instanceof Error ? error.name : "ProviderError";
+      await this.record("competition", "competition-bundle", false, "missing", reason, errorCode, requestCount);
       return { status: "degraded", provider: this.provider.name, competitions: 0, teams: 0, fixtures: 0, snapshots: 0, reason: "Provider refresh failed; cached/demo data remains available." };
     }
   }
@@ -89,7 +92,8 @@ export class FootballDataIngestionService {
       return this.repository.getSnapshot(fixtureId, category, this.provider.name);
     } catch (error) {
       const requestCount = typeof error === "object" && error && "requestCount" in error && typeof error.requestCount === "number" ? error.requestCount : error instanceof Error && error.name === "MissingFootballProviderKeyError" ? 0 : 1;
-      await this.record(category, "fixture-snapshot", false, cached ? "stale" : "missing", reason, error instanceof Error ? error.name : "ProviderError", requestCount);
+      const errorCode = typeof error === "object" && error && "providerCode" in error && typeof error.providerCode === "string" ? error.providerCode : error instanceof Error ? error.name : "ProviderError";
+      await this.record(category, "fixture-snapshot", false, cached ? "stale" : "missing", reason, errorCode, requestCount);
       return cached;
     }
   }

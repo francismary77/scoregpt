@@ -13,7 +13,8 @@ export type FootballDataCategory =
   | "injuries"
   | "lineups"
   | "statistics"
-  | "odds";
+  | "odds"
+  | "other";
 export type CacheState = "fresh" | "stale" | "missing";
 export type RefreshReason = "scheduled" | "manual" | "missing" | "stale" | "near-match" | "live";
 
@@ -33,6 +34,7 @@ export interface NormalizedCompetition {
   season: string;
   enabled: boolean;
   priority: number;
+  providerType?: string | null;
 }
 
 export interface NormalizedTeam {

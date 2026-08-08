@@ -59,19 +59,34 @@ export class SupabaseFootballIngestionRepository implements FootballIngestionRep
   async ingestBundle(provider: string, payload: CompetitionIngestionPayload) {
     const competitionId = await this.upsertCompetition(provider, payload.competition, payload.fetchedAt);
     const teamIds = new Map<string, string>();
-    for (const team of payload.teams) teamIds.set(team.providerId, await this.upsertTeam(provider, team, competitionId, payload.fetchedAt));
-    const fixtureIds = new Map<string, string>();
-    for (const fixture of payload.fixtures) {
-      const home = teamIds.get(fixture.homeTeamProviderId);
-      const away = teamIds.get(fixture.awayTeamProviderId);
-      if (!home || !away) throw new Error(`Fixture ${fixture.providerId} references an unknown team.`);
-      fixtureIds.set(fixture.providerId, await this.upsertFixture(provider, fixture, competitionId, home, away, payload.fetchedAt));
+    if (payload.teams.length) {
+      const providerIds = payload.teams.map((team) => team.providerId), collision = await this.client.from("teams").select("provider_id").eq("provider", provider).eq("is_demo", true).in("provider_id", providerIds).limit(1);
+      if (collision.error) throw new Error("Supabase football repository team collision check failed.");
+      if (collision.data?.length) throw new Error("A demonstration team uses a provider identity in this bundle; explicit mapping is required.");
+      const result = await this.client.from("teams").upsert(payload.teams.map((team) => ({ provider, provider_id: team.providerId, competition_id: competitionId, name: team.name, short_name: team.shortName, logo_url: team.logoUrl, country: team.country, last_synced_at: payload.fetchedAt, is_demo: false })), { onConflict: "provider,provider_id" }).select("id,provider_id");
+      if (result.error) throw new Error("Supabase football repository team bulk upsert failed.");
+      for (const team of result.data ?? []) if (team.provider_id) teamIds.set(team.provider_id, team.id);
     }
-    for (const snapshot of payload.snapshots) {
-      const fixture = payload.fixtures.find((item) => item.providerId === snapshot.fixtureProviderId);
-      const fixtureId = fixtureIds.get(snapshot.fixtureProviderId);
-      if (!fixture || !fixtureId) throw new Error(`Snapshot references unknown fixture ${snapshot.fixtureProviderId}.`);
-      await this.upsertSnapshot(provider, snapshot, fixtureId, expiresAtFor(snapshot.category, fixture.status, fixture.kickoffAt, snapshot.fetchedAt));
+    const requiredTeamProviderIds = [...new Set(payload.fixtures.flatMap((fixture) => [fixture.homeTeamProviderId, fixture.awayTeamProviderId]))].filter((providerId) => !teamIds.has(providerId));
+    if (requiredTeamProviderIds.length) {
+      const { data, error } = await this.client.from("teams").select("id,provider_id").eq("provider", provider).eq("competition_id", competitionId).in("provider_id", requiredTeamProviderIds);
+      if (error) throw new Error("Supabase football repository team lookup failed.");
+      for (const team of data ?? []) if (team.provider_id) teamIds.set(team.provider_id, team.id);
+    }
+    const fixtureIds = new Map<string, string>(), fixtureByProviderId = new Map(payload.fixtures.map((fixture) => [fixture.providerId, fixture]));
+    if (payload.fixtures.length) {
+      const providerIds = payload.fixtures.map((fixture) => fixture.providerId), collision = await this.client.from("fixtures").select("provider_fixture_id").eq("provider", provider).eq("is_demo", true).in("provider_fixture_id", providerIds).limit(1);
+      if (collision.error) throw new Error("Supabase football repository fixture collision check failed.");
+      if (collision.data?.length) throw new Error("A demonstration fixture uses a provider identity in this bundle; explicit mapping is required.");
+      const rows = payload.fixtures.map((fixture) => { const home = teamIds.get(fixture.homeTeamProviderId), away = teamIds.get(fixture.awayTeamProviderId); if (!home || !away) throw new Error(`Fixture ${fixture.providerId} references an unknown team.`); return { provider, provider_fixture_id: fixture.providerId, competition_id: competitionId, home_team_id: home, away_team_id: away, kickoff_at: fixture.kickoffAt, status: fixture.status, home_score: fixture.homeScore, away_score: fixture.awayScore, source: provider, last_synced_at: payload.fetchedAt, is_demo: false }; });
+      const result = await this.client.from("fixtures").upsert(rows, { onConflict: "provider,provider_fixture_id" }).select("id,provider_fixture_id");
+      if (result.error) throw new Error("Supabase football repository fixture bulk upsert failed.");
+      for (const fixture of result.data ?? []) if (fixture.provider_fixture_id) fixtureIds.set(fixture.provider_fixture_id, fixture.id);
+    }
+    if (payload.snapshots.length) {
+      const rows = payload.snapshots.map((snapshot) => { const fixture = fixtureByProviderId.get(snapshot.fixtureProviderId), fixtureId = fixtureIds.get(snapshot.fixtureProviderId); if (!fixture || !fixtureId) throw new Error(`Snapshot references unknown fixture ${snapshot.fixtureProviderId}.`); return { fixture_id: fixtureId, data_type: snapshot.category, payload: snapshot.payload, provider, fetched_at: snapshot.fetchedAt, expires_at: expiresAtFor(snapshot.category, fixture.status, fixture.kickoffAt, snapshot.fetchedAt), source_reference: snapshot.providerReference, is_demo: false }; });
+      const result = await this.client.from("football_data_snapshots").upsert(rows, { onConflict: "fixture_id,data_type,provider" });
+      if (result.error) throw new Error("Supabase football repository snapshot bulk upsert failed.");
     }
     return { competitions: 1, teams: payload.teams.length, fixtures: payload.fixtures.length, snapshots: payload.snapshots.length };
   }

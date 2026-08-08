@@ -36,10 +36,10 @@ test("disabled and missing-key adapters make zero external calls", async () => {
 test("normalized API-Football responses persist idempotently without raw envelopes", async () => {
   const calls = [], provider = new ApiFootballProvider({ apiKey: "test-placeholder-not-a-live-key", enabled: true, transport: successfulTransport(calls), now });
   const payload = await provider.fetchCompetitionData("39", "2026", ["metadata", "teams", "fixtures", "standings"]);
-  assert.equal(payload.requestCount, 4); assert.equal(payload.competition.name, "Premier League"); assert.equal(payload.teams.length, 2); assert.equal(payload.fixtures[0].status, "scheduled");
+  assert.equal(payload.requestCount, 4); assert.equal(payload.competition.name, "Premier League"); assert.equal(payload.teams.length, 2); assert.equal(payload.fixtures[0].status, "scheduled"); assert.ok(payload.snapshots.some((item) => item.category === "other"));
   assert.deepEqual(Object.keys(payload).sort(), ["competition", "fetchedAt", "fixtures", "requestCount", "snapshots", "teams"]);
   const repository = new MemoryFootballIngestionRepository(); await repository.ingestBundle(provider.name, payload); const firstId = [...repository.fixtures.values()][0].id; await repository.ingestBundle(provider.name, payload);
-  assert.deepEqual([repository.competitions.size, repository.teams.size, repository.fixtures.size, repository.snapshots.size], [1, 2, 1, 1]); assert.equal([...repository.fixtures.values()][0].id, firstId); assert.equal(calls.length, 4);
+  assert.deepEqual([repository.competitions.size, repository.teams.size, repository.fixtures.size, repository.snapshots.size], [1, 2, 1, 2]); assert.equal([...repository.fixtures.values()][0].id, firstId); assert.equal(calls.length, 4);
 });
 
 test("dry-run plans staged ingestion and makes zero provider calls", async () => {
@@ -54,9 +54,10 @@ test("budget exhaustion blocks calls and failed calls are audited", async () => 
   const repository = new MemoryFootballIngestionRepository(), requests = new MemoryProviderRequestRepository();
   await requests.recordRequest({ provider: "api-football", category: "competition", endpoint: "prior", requestedAt: now().toISOString(), requestCount: 10, succeeded: true, cacheState: "missing", refreshReason: "manual", errorCode: null });
   let calls = 0; const provider = new ApiFootballProvider({ apiKey: "test-placeholder-not-a-live-key", enabled: true, transport: async () => { calls++; return response({}, 500); }, now });
-  const service = new FootballDataIngestionService(provider, repository, requests, footballCompetitions, 10, now);
+  const enabledPremierLeague = [{ ...footballCompetitions.find((item) => item.id === "premier-league"), enabled: true }];
+  const service = new FootballDataIngestionService(provider, repository, requests, enabledPremierLeague, 10, now);
   assert.equal((await service.ingestCompetition("premier-league")).status, "skipped"); assert.equal(calls, 0);
-  const freshRequests = new MemoryProviderRequestRepository(), failedService = new FootballDataIngestionService(provider, repository, freshRequests, footballCompetitions, 10, now);
+  const freshRequests = new MemoryProviderRequestRepository(), failedService = new FootballDataIngestionService(provider, repository, freshRequests, enabledPremierLeague, 10, now);
   assert.equal((await failedService.ingestCompetition("premier-league", "manual", ["metadata"])).status, "degraded"); assert.equal(calls, 1); assert.equal(freshRequests.records[0].succeeded, false); assert.equal(freshRequests.records[0].requestCount, 1);
   const quota = await failedService.getQuotaStatus(); assert.deepEqual([quota.providerAttempts, quota.failures, quota.remainingBudget], [1, 1, 9]);
 });
