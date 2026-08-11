@@ -1,0 +1,3 @@
+import type { SelectivePublishingResult } from "./domain";
+import { AI_CONFIDENCE_SHORT_DISCLAIMER, CONFIDENCE_LABELS, PUBLISHING_TIER_LABELS } from "./labels";
+export function toPublicSelectivePublishingResult(result: SelectivePublishingResult) { return { fixtureId: result.fixtureId, prediction: { methodology: result.predictionMethodology, selectedOutcome: result.selectedOutcome, probabilities: result.probabilities }, confidence: { label: result.confidenceLabel ? CONFIDENCE_LABELS[result.confidenceLabel] : null, explanation: AI_CONFIDENCE_SHORT_DISCLAIMER }, publication: { tier: result.publicationState.publiclyPresentedTier, label: result.publicationState.publiclyPresentedTier ? PUBLISHING_TIER_LABELS[result.publicationState.publiclyPresentedTier] : null } }; }

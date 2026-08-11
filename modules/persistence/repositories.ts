@@ -99,7 +99,7 @@ export class SupabasePredictionUsageRepository implements PredictionUsageReposit
       .from("prediction_usage")
       .select("fixture_id,created_at")
       .eq("user_id", userId)
-      .eq("usage_type", "report-view")
+      .in("usage_type", ["report-view", "report-unlock"])
       .order("created_at", { ascending: false });
     throwOnError(error);
     const ids = [...new Set((data ?? []).flatMap((row) => row.fixture_id ? [row.fixture_id] : []))];
@@ -139,6 +139,24 @@ export class SupabasePredictionUsageRepository implements PredictionUsageReposit
       throwOnError(error);
     }
     return this.getUsageForUser(userId);
+  }
+
+  async unlockPrediction(_userId: string, fixtureId: string, allowance: number) {
+    const persistedFixtureId = await this.resolveFixtureId(fixtureId);
+    const { data, error } = await this.client.rpc("unlock_consumer_prediction", { p_fixture_id: persistedFixtureId, p_allowance: allowance });
+    throwOnError(error);
+    const result = data?.[0];
+    if (!result) throw new Error("Prediction unlock did not return a result.");
+    return { reportId: result.report_id, alreadyUnlocked: result.already_unlocked, remaining: result.remaining };
+  }
+
+  private async resolveFixtureId(fixtureId: string): Promise<string> {
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(fixtureId)) return fixtureId;
+    const { data, error } = await this.client.from("fixtures").select("id").eq("provider_fixture_id", fixtureId).maybeSingle();
+    throwOnError(error);
+    if (!data) throw new Error("This fixture is not available in persisted intelligence yet.");
+    return data.id;
   }
 }
 

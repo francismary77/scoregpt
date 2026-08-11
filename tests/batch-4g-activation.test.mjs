@@ -11,7 +11,7 @@ const { FootballDataIngestionService } = await import("../modules/football-data/
 const { createFootballVerificationReport } = await import("../modules/football-data/verification.ts");
 
 const now = () => new Date("2026-08-08T10:00:00.000Z");
-const competition = { providerId: "179", name: "Premiership", country: "Scotland", season: "2024", providerType: "League", enabled: true, priority: 10 };
+const competition = { providerId: "179", name: "Premiership", country: "Scotland", season: "2026", providerType: "League", enabled: true, priority: 10 };
 const teams = [{ providerId: "247", competitionProviderId: "179", name: "Celtic", shortName: "CEL", logoUrl: null, country: "Scotland" }];
 function provider(overrides = {}) { return { name: "api-football", enabled: true, credentialConfigured: true, estimateCompetitionRequests: (categories) => new Set(categories).size, async fetchCompetitionData() { return { competition, teams, fixtures: [], snapshots: [], fetchedAt: now().toISOString(), requestCount: 2 }; }, async fetchFixtureData() { throw new Error("unused"); }, async getFixtures(){return[]}, async getFixture(){return null}, async getTeamForm(teamId){return{teamId,sequence:[],summary:""}}, async getCompetition(){return null}, async getResult(){return null}, ...overrides }; }
 function workflow(providerValue = provider(), budget = 30, repository = new MemoryFootballIngestionRepository(), requests = new MemoryProviderRequestRepository()) { const ingestion = new FootballDataIngestionService(providerValue, repository, requests, footballCompetitions, budget, now); return { workflow: new FootballBootstrapWorkflow(providerValue, repository, ingestion, footballCompetitions, now), repository, requests }; }
@@ -20,7 +20,7 @@ test("enabled competition Stage A preflight is narrow, complete, and makes zero 
   let calls = 0; const setup = workflow(provider({ async fetchCompetitionData(){calls++;throw new Error("must not execute")}}));
   const plan = await setup.workflow.run("A", { dryRun: true, competitionId: "scottish-premiership", categories: PREMIER_LEAGUE_STAGE_A.categories });
   const item = plan.items[0];
-  assert.deepEqual(item.requestedCategories, ["metadata", "teams"]); assert.equal(item.providerCompetitionId, "179"); assert.equal(item.season, "2024"); assert.equal(item.competitionEnabled, true);
+  assert.deepEqual(item.requestedCategories, ["metadata", "teams"]); assert.equal(item.providerCompetitionId, "179"); assert.equal(item.season, "2026"); assert.equal(item.competitionEnabled, true);
   assert.deepEqual(item.cachedCategories, []); assert.deepEqual(item.staleCategories, []); assert.equal(item.estimatedRequests, 2); assert.equal(item.remainingBudgetBefore, 30); assert.equal(item.remainingBudgetAfter, 28); assert.equal(item.allowed, true); assert.match(item.quotaWarning, /confirmed execution/); assert.equal(calls, 0);
   assert.equal(footballCompetitions.filter((item) => item.enabled).length, 1);
 });

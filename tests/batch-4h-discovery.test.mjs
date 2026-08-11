@@ -44,7 +44,7 @@ test("ambiguous discovery stops after one mocked request and audits failure", as
 test("authentication probe uses one mocked status request and returns safe quota metadata", async () => {
   let calls = 0, path = ""; const requests = new MemoryProviderRequestRepository(), provider = new ApiFootballProvider({ apiKey: "test-placeholder-not-a-live-key", enabled: true, transport: async (input) => { calls++; path = new URL(String(input)).pathname; return new Response(JSON.stringify({ response: { account: { firstname: "hidden" } } }), { status: 200, headers: { "x-ratelimit-requests-limit": "100", "x-ratelimit-requests-remaining": "96" } }); } });
   const result = await runProviderAuthenticationCheck({ provider, requests, dailyBudget: 30, confirmation: "CHECK_API_FOOTBALL_AUTH", now });
-  assert.equal(path, "/status"); assert.equal(calls, 1); assert.deepEqual(result, { httpStatus: 200, keyAccepted: true, dailyLimit: 100, dailyRemaining: 96, requestCount: 1 }); assert.equal(requests.records[0].requestCount, 1);
+  assert.equal(path, "/status"); assert.equal(calls, 1); assert.deepEqual(result, { httpStatus: 200, keyAccepted: true, headerLimit: 100, headerRemaining: 96, subscriptionActive: null, subscriptionPlan: null, subscriptionDailyLimit: null, subscriptionDailyUsed: null, requestCount: 1 }); assert.equal(requests.records[0].requestCount, 1);
 });
 
 test("authentication probe reports safe HTTP failure after one mocked request", async () => {

@@ -34,8 +34,11 @@ export class SupabaseFootballIngestionRepository implements FootballIngestionRep
 
   async upsertTeam(provider: string, item: NormalizedTeam, competitionId: string, syncedAt: string) {
     await this.rejectDemoCollision("teams", "provider_id", provider, item.providerId);
-    const result = await this.client.from("teams").upsert({ provider, provider_id: item.providerId, competition_id: competitionId, name: item.name, short_name: item.shortName, logo_url: item.logoUrl, country: item.country, last_synced_at: syncedAt, is_demo: false }, { onConflict: "provider,provider_id" }).select("id").single();
-    return requireData(result.data, result.error, "team").id;
+    const result = await this.client.from("teams").upsert({ provider, provider_id: item.providerId, name: item.name, short_name: item.shortName, logo_url: item.logoUrl, country: item.country, last_synced_at: syncedAt, is_demo: false }, { onConflict: "provider,provider_id" }).select("id").single();
+    const teamId = requireData(result.data, result.error, "team").id;
+    const membership = await this.client.from("team_competition_seasons").upsert({ team_id: teamId, competition_id: competitionId }, { onConflict: "team_id,competition_id" });
+    if (membership.error) throw new Error("Supabase football repository team membership upsert failed.");
+    return teamId;
   }
 
   async upsertFixture(provider: string, item: NormalizedFixture, competitionId: string, homeTeamId: string, awayTeamId: string, syncedAt: string) {
@@ -63,15 +66,20 @@ export class SupabaseFootballIngestionRepository implements FootballIngestionRep
       const providerIds = payload.teams.map((team) => team.providerId), collision = await this.client.from("teams").select("provider_id").eq("provider", provider).eq("is_demo", true).in("provider_id", providerIds).limit(1);
       if (collision.error) throw new Error("Supabase football repository team collision check failed.");
       if (collision.data?.length) throw new Error("A demonstration team uses a provider identity in this bundle; explicit mapping is required.");
-      const result = await this.client.from("teams").upsert(payload.teams.map((team) => ({ provider, provider_id: team.providerId, competition_id: competitionId, name: team.name, short_name: team.shortName, logo_url: team.logoUrl, country: team.country, last_synced_at: payload.fetchedAt, is_demo: false })), { onConflict: "provider,provider_id" }).select("id,provider_id");
+      const result = await this.client.from("teams").upsert(payload.teams.map((team) => ({ provider, provider_id: team.providerId, name: team.name, short_name: team.shortName, logo_url: team.logoUrl, country: team.country, last_synced_at: payload.fetchedAt, is_demo: false })), { onConflict: "provider,provider_id" }).select("id,provider_id");
       if (result.error) throw new Error("Supabase football repository team bulk upsert failed.");
       for (const team of result.data ?? []) if (team.provider_id) teamIds.set(team.provider_id, team.id);
+      const memberships = await this.client.from("team_competition_seasons").upsert([...teamIds.values()].map((teamId) => ({ team_id: teamId, competition_id: competitionId })), { onConflict: "team_id,competition_id" });
+      if (memberships.error) throw new Error("Supabase football repository team membership bulk upsert failed.");
     }
     const requiredTeamProviderIds = [...new Set(payload.fixtures.flatMap((fixture) => [fixture.homeTeamProviderId, fixture.awayTeamProviderId]))].filter((providerId) => !teamIds.has(providerId));
     if (requiredTeamProviderIds.length) {
-      const { data, error } = await this.client.from("teams").select("id,provider_id").eq("provider", provider).eq("competition_id", competitionId).in("provider_id", requiredTeamProviderIds);
+      const { data, error } = await this.client.from("teams").select("id,provider_id").eq("provider", provider).in("provider_id", requiredTeamProviderIds);
       if (error) throw new Error("Supabase football repository team lookup failed.");
-      for (const team of data ?? []) if (team.provider_id) teamIds.set(team.provider_id, team.id);
+      const ids = (data ?? []).map((team) => team.id), membership = ids.length ? await this.client.from("team_competition_seasons").select("team_id").eq("competition_id", competitionId).in("team_id", ids) : { data: [], error: null };
+      if (membership.error) throw new Error("Supabase football repository team membership lookup failed.");
+      const members = new Set((membership.data ?? []).map((row) => row.team_id));
+      for (const team of data ?? []) if (team.provider_id && members.has(team.id)) teamIds.set(team.provider_id, team.id);
     }
     const fixtureIds = new Map<string, string>(), fixtureByProviderId = new Map(payload.fixtures.map((fixture) => [fixture.providerId, fixture]));
     if (payload.fixtures.length) {
@@ -102,11 +110,13 @@ export class SupabaseFootballIngestionRepository implements FootballIngestionRep
     if (competitionResult.error) throw new Error(`Supabase football repository error: ${competitionResult.error.message}`);
     const competitionRows = competitionResult.data ?? [], competitionIds = competitionRows.map((item) => item.id);
     if (!competitionIds.length) return { competitionCount: 0, teamCount: 0, fixtureCount: 0, snapshotCategories: [], freshCategories: [], staleCategories: [], providerReferences: [], lastFetchedAt: null, duplicateWarnings: [], malformedWarnings: [] };
-    const [teamResult, fixtureResult] = await Promise.all([
-      this.client.from("teams").select("id,provider_id,name,last_synced_at").in("competition_id", competitionIds).eq("provider", provider),
+    const [membershipResult, fixtureResult] = await Promise.all([
+      this.client.from("team_competition_seasons").select("team_id").in("competition_id", competitionIds),
       this.client.from("fixtures").select("id,provider_fixture_id,home_team_id,away_team_id,last_synced_at").in("competition_id", competitionIds).eq("provider", provider),
     ]);
-    if (teamResult.error || fixtureResult.error) throw new Error("Supabase football repository inspection failed.");
+    if (membershipResult.error || fixtureResult.error) throw new Error("Supabase football repository inspection failed.");
+    const membershipTeamIds = [...new Set((membershipResult.data ?? []).map((row) => row.team_id))], teamResult = membershipTeamIds.length ? await this.client.from("teams").select("id,provider_id,name,last_synced_at").in("id", membershipTeamIds).eq("provider", provider) : { data: [], error: null };
+    if (teamResult.error) throw new Error("Supabase football repository inspection failed.");
     const teams = teamResult.data ?? [], fixtures = fixtureResult.data ?? [], fixtureIds = fixtures.map((item) => item.id);
     const snapshotResult = fixtureIds.length ? await this.client.from("football_data_snapshots").select("data_type,fetched_at,expires_at,source_reference").in("fixture_id", fixtureIds).eq("provider", provider) : { data: [], error: null };
     if (snapshotResult.error) throw new Error("Supabase football repository inspection failed.");

@@ -55,6 +55,9 @@ export interface NormalizedFixture {
   status: MatchStatus;
   homeScore: number | null;
   awayScore: number | null;
+  round?: string | null;
+  venueName?: string | null;
+  venueCity?: string | null;
 }
 
 export interface NormalizedSnapshot {

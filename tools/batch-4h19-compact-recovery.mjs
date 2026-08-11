@@ -1,0 +1,13 @@
+import fs from "node:fs";
+import { ApiFootballProvider } from "../modules/football-data/api-football-provider.ts";
+import { auditOpeningFixtures } from "../modules/football-intelligence/rolling-readiness.ts";
+
+const env = Object.fromEntries(fs.readFileSync(".env.local", "utf8").split(/\r?\n/).flatMap((line) => { const match = line.match(/^([A-Z0-9_]+)=(.*)$/); return match ? [[match[1], match[2].trim().replace(/^['"]|['"]$/g, "")]] : []; })), now = new Date().toISOString(), audits = [], provider = new ApiFootballProvider({ apiKey: env.FOOTBALL_API_KEY, enabled: true, now: () => new Date(now), onRequest: (audit) => audits.push(audit) });
+const configs = [{ providerId: "39", name: "Premier League", country: "England", type: "League", seasons: [] }, { providerId: "61", name: "Ligue 1", country: "France", type: "League", seasons: [] }], reports = [];
+for (const competition of configs) {
+  const teams = await provider.fetchCompetitionTeams(competition, "2026"), fixtures = await provider.fetchSeasonFixtures(competition, "2026"), prior = (await provider.fetchSeasonFixtures(competition, "2025")).filter((fixture) => fixture.status === "finished" && fixture.homeScore !== null && fixture.awayScore !== null), priorIds = new Set(prior.flatMap((fixture) => [fixture.homeTeamProviderId, fixture.awayTeamProviderId])), counts = new Map();
+  for (const fixture of prior) for (const team of [fixture.homeTeamProviderId, fixture.awayTeamProviderId]) counts.set(team, (counts.get(team) ?? 0) + 1);
+  const future = fixtures.filter((fixture) => new Date(fixture.kickoffAt) > new Date(now)).sort((a, b) => a.kickoffAt.localeCompare(b.kickoffAt)), round = future[0].round, opening = auditOpeningFixtures({ fixtures: future.filter((fixture) => fixture.round === round), currentTeams: teams, priorTopFlightTeamIds: priorIds, priorEvidenceCounts: counts, now });
+  reports.push({ providerId: competition.providerId, name: competition.name, teamCount: teams.length, fixtureCount: fixtures.length, priorCompleted: prior.length, openingRound: round, promotedTeams: teams.filter((team) => !priorIds.has(team.providerId)).map((team) => ({ id: team.providerId, name: team.name })), opening: opening.map((fixture) => ({ id: fixture.providerId, home: teams.find((team) => team.providerId === fixture.homeTeamProviderId)?.name, away: teams.find((team) => team.providerId === fixture.awayTeamProviderId)?.name, kickoff: fixture.kickoffAt, entry: fixture.eligibilityEntryAt, venue: fixture.venueName, window: fixture.windowState, promoted: fixture.promotedClubInvolved, evidence: fixture.evidenceAvailable })) });
+}
+console.log(JSON.stringify({ now, requests: audits.length, remaining: audits.at(-1)?.rateLimitRemaining, reports }, null, 2));

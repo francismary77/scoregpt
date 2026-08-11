@@ -119,3 +119,51 @@ Participant classification uses persisted round metadata. Teams appearing in nor
 `MatchAnalysisInput` combines both team profiles, venue-relevant form, recent-N form, goal trends, H2H history, latest-data date and deterministic data-completeness metadata. It is an internal historical-analysis contract for a future intelligence provider, not a probability, prediction or betting recommendation.
 
 Season 2024 remains development/test data only. Current production-season analysis requires appropriate provider access and separately authorized ingestion.
+
+## Deterministic match intelligence
+
+The provider-independent `historical-v1` model transforms `MatchAnalysisInput` into a typed `MatchIntelligenceResult`. It returns bounded 1X2 and goal-market probability estimates, historical scoring/conceding goal expectations, normalized team-strength scores, evidence-quality confidence and machine-readable supporting factors. Identical input and model configuration always produce identical output; there is no randomness or implicit current-time dependency.
+
+Team-strength weights are explicit and configurable: season points per game 20%, season goal difference 12%, season attack 10%, season defence 10%, recent points per game 18%, recent win rate 8%, venue-specific points per game 15%, scoring rate 4% and clean-sheet rate 3%. H2H is a separately capped adjustment of at most 5%, scaled down until eight stored meetings are available, so a small H2H sample cannot dominate. Home advantage comes from the home team's persisted home record versus the away team's persisted away record; the model adds no unexplained home constant.
+
+Goal expectations average the home side's home scoring rate with the away side's away conceding rate, and vice versa. These are historical model-derived expectations, not event-level expected-goals (`xG`) data. Goal-market estimates blend the resulting Poisson-style total-goal distribution with normalized recent venue trends. When venue evidence is absent, goal expectations and markets remain unavailable rather than fabricating data.
+
+Confidence describes evidence quality, not the size of a probability. Historical, recent, venue and H2H sample sizes plus the upstream completeness classification determine `low`, `moderate` or `strong`. Sparse inputs produce neutral 1X2 estimates, nullable goal markets, low confidence and limiting factors.
+
+The intended pipeline is:
+
+`data provider -> normalized ingestion -> Supabase persisted football data -> historical analytics -> MatchAnalysisInput -> deterministic intelligence engine -> MatchIntelligenceResult -> future OpenAI explanation layer -> future 9jaFootballAI presentation/API layer`
+
+Prediction calculation makes no football-provider request once normalized history is persisted. Future viewers must read a centrally generated/stored result rather than trigger provider work per user. The model remains compatible with a future centralized live-data refresh subsystem because neither calculation nor presentation owns ingestion.
+
+## Chronological model backtesting
+
+The provider-independent backtesting layer measures `historical-v1` with walk-forward evaluation. For every eligible completed fixture, it creates a point-in-time dataset containing only fixtures with kickoff timestamps strictly earlier than the target, builds `MatchAnalysisInput`, records the historical prediction, and then compares that prediction with the target's actual result. The target, simultaneous fixtures and all later fixtures are excluded. This prevents target-result, final-table, future-form, future-H2H and future venue-statistics leakage.
+
+The default minimum is five prior completed matches for both teams. Every excluded fixture remains counted under a specific insufficient-history reason. Evaluation reports top-pick accuracy, multiclass Brier score, log loss, confidence and team breakdowns, calibration buckets, goal-market accuracy/Brier scores at a documented 0.5 classification threshold, and home/away/total historical goal-expectation MAE. Unsupported null market estimates are excluded rather than counted as failures.
+
+Two untuned point-in-time baselines are included: equal one-third 1X2 probabilities, and the competition's home/draw/away result frequencies from fixtures completed before kickoff. Equal-probability top-pick accuracy uses deterministic home tie handling only to make the count reproducible; its Brier score and log loss are the meaningful probability-quality comparisons.
+
+Backtesting follows:
+
+`persisted history -> strict point-in-time snapshot -> MatchAnalysisInput -> historical-v1 -> historical prediction -> actual result -> evaluation and calibration metrics`
+
+Stage B4 measures the frozen `historical-v1` model. It does not tune weights, introduce a new model version, publish predictions, or call API-Football/OpenAI. Scottish Premiership 2024 remains development/test evaluation data only.
+
+## Multi-league historical development data
+
+Batch 4H.5 adds a server-only, quota-bounded historical expansion workflow. It validates a league identity, retrieves league-season teams and the complete fixture collection with two or three provider requests, and persists normalized entities and fixture metadata through bounded bulk upserts. It never makes one request per fixture and never invokes predictions or backtesting.
+
+The 2024 development datasets successfully persisted are Premier League (`39`), La Liga (`140`), Serie A (`135`) and Bundesliga (`78`). Ligue 1 (`61`) was verified by a valid France/2024 discovery response, but its subsequent bundle was rejected by the provider quota and was not persisted or retried. These are historical development datasets, not current 9jaFootballAI production intelligence.
+
+Provider team identities are protected from silent cross-competition reassignment. A conflicting provider identity stops the affected bundle; existing teams, competitions and fixtures remain intact. Competition-season and fixture-provider uniqueness, demo collision checks, normalized statuses, score validation and provider provenance remain enforced. Exact provider season date fields were retained only for the Ligue 1 discovery; for the other leagues, the normalized adapter did not retain raw season date fields, so persisted fixture coverage is reported without inventing metadata.
+
+## Multi-league out-of-sample evaluation
+
+Batch 4H.6 evaluates the unchanged `historical-v1` model independently on Premier League, La Liga, Serie A and Bundesliga 2024. Each walk-forward run retains the five-prior-match threshold and strict kickoff cutoff: target, same-kickoff and later fixtures cannot enter evidence. League-season datasets are loaded and evaluated separately before weighted aggregate reporting, preventing cross-competition or cross-season evidence.
+
+The four leagues produced 1,251 eligible predictions from 1,448 fixtures. Aggregate top-pick accuracy was 50.36%, multiclass Brier score 0.6049 and log loss 1.0109. Results were stable by league: accuracy 49.09–52.42%, Brier 0.5912–0.6185 and log loss 0.9902–1.0286. `historical-v1` beat equal-1X2 and prior-result-frequency baselines on Brier score and log loss in every evaluated league.
+
+The generalisation evidence is **promising but not production-ready**. The principal defect is structural: the model selected zero draws across all four leagues despite 319 actual draws. It therefore over-selects decisive home and away outcomes. Moderate evidence quality performed slightly better in aggregate than low evidence quality, but Bundesliga showed the reverse and no out-of-sample prediction reached `strong`; normal double-round-robin H2H samples do not satisfy the current strong-confidence evidence rule. BTTS and Over 2.5 discrimination remain weak, while Over 1.5 and Over 3.5 were more useful historically.
+
+These results are historical development/backtesting evidence, not claims of guaranteed future betting performance. No model weight, formula, version, production prediction, provider data or OpenAI service was changed or invoked during evaluation. Any tuning must create a separately reviewed future model version.

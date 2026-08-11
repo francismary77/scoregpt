@@ -7,7 +7,8 @@ type Entity<T> = T & { id: string };
 
 export class MemoryFootballIngestionRepository implements FootballIngestionRepository {
   readonly competitions = new Map<string, Entity<NormalizedCompetition> & { lastSyncedAt: string }>();
-  readonly teams = new Map<string, Entity<NormalizedTeam> & { competitionId: string; lastSyncedAt: string }>();
+  readonly teams = new Map<string, Entity<NormalizedTeam> & { lastSyncedAt: string }>();
+  readonly teamCompetitionSeasons = new Set<string>();
   readonly fixtures = new Map<string, Entity<NormalizedFixture> & { competitionId: string; homeTeamId: string; awayTeamId: string; lastSyncedAt: string }>();
   readonly snapshots = new Map<string, StoredSnapshot>();
 
@@ -20,8 +21,10 @@ export class MemoryFootballIngestionRepository implements FootballIngestionRepos
 
   async upsertTeam(provider: string, item: NormalizedTeam, competitionId: string, syncedAt: string): Promise<string> {
     const key = `${provider}:${item.providerId}`;
-    const id = this.teams.get(key)?.id ?? randomUUID();
-    this.teams.set(key, { ...item, competitionId, id, lastSyncedAt: syncedAt });
+    const existing = this.teams.get(key);
+    const id = existing?.id ?? randomUUID();
+    this.teams.set(key, { ...item, id, lastSyncedAt: syncedAt });
+    this.teamCompetitionSeasons.add(`${id}:${competitionId}`);
     return id;
   }
 
@@ -51,7 +54,7 @@ export class MemoryFootballIngestionRepository implements FootballIngestionRepos
     const competitionId = await this.upsertCompetition(provider, payload.competition, payload.fetchedAt);
     const teamIds = new Map<string, string>();
     for (const team of payload.teams) teamIds.set(team.providerId, await this.upsertTeam(provider, team, competitionId, payload.fetchedAt));
-    for (const team of this.teams.values()) if (team.competitionId === competitionId && !teamIds.has(team.providerId)) teamIds.set(team.providerId, team.id);
+    for (const team of this.teams.values()) if (this.teamCompetitionSeasons.has(`${team.id}:${competitionId}`) && !teamIds.has(team.providerId)) teamIds.set(team.providerId, team.id);
     const fixtureIds = new Map<string, string>();
     for (const fixture of payload.fixtures) {
       const home = teamIds.get(fixture.homeTeamProviderId);
@@ -75,7 +78,7 @@ export class MemoryFootballIngestionRepository implements FootballIngestionRepos
   async inspectCompetition(provider: string, providerCompetitionId: string, season: string) {
     const competition = this.competitions.get(`${provider}:${providerCompetitionId}:${season}`);
     if (!competition) return { competitionCount: 0, teamCount: 0, fixtureCount: 0, snapshotCategories: [], freshCategories: [], staleCategories: [], providerReferences: [], lastFetchedAt: null, duplicateWarnings: [], malformedWarnings: [] };
-    const teams = [...this.teams.values()].filter((item) => item.competitionId === competition.id);
+    const teams = [...this.teams.values()].filter((item) => this.teamCompetitionSeasons.has(`${item.id}:${competition.id}`));
     const fixtures = [...this.fixtures.values()].filter((item) => item.competitionId === competition.id);
     const fixtureIds = new Set(fixtures.map((item) => item.id));
     const snapshots = [...this.snapshots.values()].filter((item) => fixtureIds.has(item.fixtureId));

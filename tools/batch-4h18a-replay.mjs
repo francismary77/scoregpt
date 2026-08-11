@@ -1,0 +1,17 @@
+import "tsx/esm";
+import fs from "node:fs";
+import { createHash } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
+import { immutablePredictionFingerprint } from "../modules/football-intelligence/shadow-pipeline/index.ts";
+import { SupabaseShadowPredictionRepository, SupabaseShadowRunRepository } from "../modules/persistence/shadow-repositories.ts";
+
+const env = Object.fromEntries(fs.readFileSync(".env.local", "utf8").split(/\r?\n/).flatMap((line) => { const match = line.match(/^([A-Z0-9_]+)=(.*)$/); return match ? [[match[1], match[2].trim().replace(/^['"]|['"]$/g, "")]] : []; }));
+const projectRef = new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0];
+if (projectRef !== "oislplqdvtaajqxbwvut") throw new Error("DEVELOPMENT_PROJECT_IDENTITY_GATE_FAILED");
+const client = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } }), predictions = new SupabaseShadowPredictionRepository(client), runs = new SupabaseShadowRunRepository(client);
+const allBefore = await predictions.list(), runRows = await runs.list(), cohort1 = allBefore.filter((row) => row.runId === "shadowrun_20260810T194650130Z"), cohort2Run = runRows.find((row) => row.id === "shadowrun_20260810T221803419Z"), cohort2 = allBefore.filter((row) => row.runId === cohort2Run?.id);
+const legacyFingerprint = (row) => createHash("sha256").update(JSON.stringify([row.fixtureId, row.providerFixtureId, row.competitionId, row.providerCompetitionId, row.season, row.homeTeamId, row.awayTeamId, row.kickoffAt, row.predictionCreatedAt, row.evidenceCutoffAt, row.methodologyKey, row.methodologyVersion, row.confidenceVersion, row.publishingPolicyVersion, row.selectedOutcome, row.homeProbability, row.drawProbability, row.awayProbability, row.confidenceScoreInternal, row.confidenceLabel, row.publishingTierCalculated, row.rankingScope, row.rankingDate, row.rankingPosition, row.eligiblePopulationSize, row.isTopPickCalculated, row.operationalPublicationState, row.shadowMode, row.methodologySnapshot])).digest("hex");
+const cohort1LegacyBefore = cohort1.map(legacyFingerprint), replay = [];
+for (const row of cohort2) replay.push(await predictions.insert(row));
+const allAfter = await predictions.list(), cohort1After = allAfter.filter((row) => row.runId === "shadowrun_20260810T194650130Z");
+console.log(JSON.stringify({ projectRef, runCount: runRows.length, predictionCountBefore: allBefore.length, predictionCountAfter: allAfter.length, cohort1Count: cohort1.length, cohort1FingerprintsUnchanged: JSON.stringify(cohort1LegacyBefore) === JSON.stringify(cohort1After.map(legacyFingerprint)), cohort2RunFound: Boolean(cohort2Run), cohort2Count: cohort2.length, replayCreated: replay.filter((item) => item.created).length, replayReused: replay.filter((item) => !item.created).length, canonicalFingerprintsUnique: new Set(cohort2.map(immutablePredictionFingerprint)).size === cohort2.length, allPending: cohort2.every((row) => row.settlementStatus === "PENDING"), allShadowOnly: cohort2.every((row) => row.shadowMode && row.operationalPublicationState === "SHADOW_ONLY"), duplicateCanonicalIdentities: allAfter.length - new Set(allAfter.map((row) => `${row.fixtureId}|${row.methodologyVersion}|${row.publishingPolicyVersion}|${row.shadowMode}`)).size, cohort2Fingerprints: cohort2.map((row) => ({ providerFixtureId: row.providerFixtureId, fingerprint: immutablePredictionFingerprint(row) })) }, null, 2));
