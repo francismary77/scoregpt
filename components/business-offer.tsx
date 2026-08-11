@@ -29,7 +29,7 @@ export function BusinessOffer() {
           </div>
           <div className="business-points"><span>Your brand.</span><span>Your domain.</span><span>Your subscribers.</span><span>Your pricing.</span></div>
           <ul>{capabilities.map((capability) => <li key={capability}>{capability}</li>)}</ul>
-          <small>Live coverage for all 30 competitions is not active on the current 9ja Football AI demonstration platform.</small>
+          <small>Competition coverage is configurable and expands as competitions and provider services are enabled.</small>
         </div>
       </div>
     </section>

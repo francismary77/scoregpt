@@ -55,16 +55,16 @@ test("unknown fixture renders the safe not-found experience", async () => {
 
 test("Batch 3A sales page preserves approved commercial facts and WhatsApp journeys", async () => {
   const response = await render("/sales"); const html = await response.text(); const visibleHtml=html.replaceAll("<!-- -->","").replaceAll("&amp;","&");
-  for (const value of ["Starter Edition", "Business Edition", "7–14 Working Days", "14–21 Working Days", "₦500,000", "₦350,000", "₦1,000,000", "₦750,000", "₦18,000/month from month 7", "₦24,000/month from month 7", "First 6 months included", "30 Top Football Leagues & Competitions", "+234 810 501 6931", "Have questions before you decide?", "What We Need From You", "How long does it take to launch my platform?"]) assert.match(visibleHtml, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+  for (const value of ["Launch Edition", "Business Edition", "7–14 Working Days", "14–21 Working Days", "₦500,000", "₦350,000", "₦1,000,000", "₦750,000", "₦18,000/month from month 7", "₦24,000/month from month 7", "First 6 months included", "30 Top Football Leagues & Competitions", "+234 810 501 6931", "Have questions before you decide?", "What We Need From You", "How long does it take to launch my platform?"]) assert.match(visibleHtml, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
   assert.doesNotMatch(visibleHtml, /first 12 months|after the first year|₦12,000\/month|Platform Care/i);
   assert.match(html, /https:\/\/wa\.me\/2348105016931\?text=/);
-  assert.match(decodeURIComponent(html), /Hello FABRO TECH LIMITED, I am interested in the 9ja Football AI Starter Edition/);
+  assert.match(decodeURIComponent(html), /Hello FABRO TECH LIMITED, I am interested in the 9ja Football AI Launch Edition/);
   assert.match(decodeURIComponent(html), /Hello FABRO TECH LIMITED, I am interested in the 9ja Football AI Business Edition/);
 });
 
 test("contact page makes WhatsApp the primary platform-sales channel", async () => {
   const response = await render("/contact"); const html = await response.text();
-  assert.match(html, /Platform Sales/); assert.match(html, /Ask on WhatsApp/); assert.match(html, /2348105016931/);
+  assert.match(html, /Platform Sales/); assert.match(html, /Chat With Us on WhatsApp/); assert.match(html, /2348105016931/);
 });
 
 test("Batch 4F homepage and football routes render repository read-model sections",async()=>{const home=await(await render("/")).text(),matches=await(await render("/matches")).text(),results=await(await render("/results")).text(),competitions=await(await render("/competitions")).text();for(const value of["Built for 30 Top Football Leagues","Upcoming matches","Football intelligence preview","Recent results"])assert.match(home,new RegExp(value,"i"));assert.match(matches,/Upcoming/);assert.match(matches,/Competition/);assert.match(results,/Completed and cancelled fixtures/);assert.match(competitions,/rolling out competition by competition/i);assert.doesNotMatch(home,/all 30 (?:are )?live/i)});
@@ -90,9 +90,9 @@ test("mock AI provider is provider-compatible, deterministic and offline", async
 
 test("Batch 3D checkout displays configured transfer facts and remains pending", async () => {
   const launch = (await (await render("/checkout/platform/launch")).text()).replaceAll("<!-- -->",""); const business = (await (await render("/checkout/platform/business")).text()).replaceAll("<!-- -->","");
-  for (const html of [launch,business]) { assert.match(html,/FABRO TECH LIMITED/); assert.match(html,/GTBank/); assert.match(html,/0603685542/); assert.match(html,/Pending Payment/); assert.match(html,/Send Payment Receipt on WhatsApp/); assert.match(html,/Attach your receipt manually/i); }
+  for (const html of [launch,business]) { assert.match(html,/FABRO TECH LIMITED/); assert.match(html,/GTBank/); assert.match(html,/0603685542/); assert.match(html,/Pending Payment/); assert.match(html,/Business Terms/); assert.match(html,/Refund\/Cancellation Policy/); assert.match(html,/Accept the terms to continue/i); }
   assert.match(launch,/₦350,000/); assert.match(launch,/₦18,000\/month/); assert.match(launch,/First 6 months included/);
-  assert.match(business,/₦750,000/); assert.match(business,/₦24,000\/month/); assert.match(decodeURIComponent(launch),/I have made payment for the 9ja Football AI Starter Edition/);
+  assert.match(business,/₦750,000/); assert.match(business,/₦24,000\/month/);
 });
 
 test("billing providers are swappable placeholders with no live gateway calls", async () => {
