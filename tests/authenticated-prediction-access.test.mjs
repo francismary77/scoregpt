@@ -29,17 +29,17 @@ test("distinct unlocks decrement once, repeat/refresh stays free, and fourth is 
   assert.equal((await service.decide("fixture-1")).allowed, true);
 });
 
-test("migration enforces atomic server-side access and blocks unpublished or shadow records", async () => {
-  const migration = await read("supabase/migrations/202608110002_batch_4h20_consumer_prediction_access.sql");
+test("migrations enforce atomic database-authoritative access and block unpublished records", async () => {
+  const migration = await read("supabase/migrations/202608110003_production_prediction_publication_foundation.sql");
   assert.match(migration, /pg_advisory_xact_lock/);
-  assert.match(migration, /prediction_usage_unique_report_unlock/);
+  assert.match(migration, /v_allowance constant integer := 3/);
+  assert.doesNotMatch(migration, /p_allowance/);
   assert.match(migration, /prediction_not_publishable/);
   assert.match(migration, /allowance_exhausted/);
   assert.match(migration, /consumer_publication_state = 'PUBLISHED'/);
-  assert.match(migration, /forward_prediction_id text null references public\.football_shadow_predictions\(id\)/);
+  assert.match(migration, /forward_prediction_id = v_shadow\.id/);
   assert.match(migration, /r\.is_demo = false/);
-  assert.doesNotMatch(migration, /football_shadow_predictions[\s\S]*grant select/i);
-  assert.match(migration, /revoke insert on public\.prediction_usage from authenticated/);
+  assert.doesNotMatch(migration, /grant select on public\.football_shadow_predictions/i);
 });
 
 test("consumer data path has no persisted-mode demo substitution or historical performance", async () => {

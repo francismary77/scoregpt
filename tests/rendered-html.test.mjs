@@ -34,16 +34,17 @@ test("Batch 2D auth and membership boundaries remain provider-neutral and demo-s
 });
 
 test("Batch 2C keeps interactive filters in client islands and data composition in services", async () => {
-  const [matches, results, application, report] = await Promise.all([
+  const [matches, results, application, report, storedReport] = await Promise.all([
     readFile(new URL("../components/match-centre.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/results-centre.tsx", import.meta.url), "utf8"),
     readFile(new URL("../modules/intelligence/application.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/matches/[fixtureId]/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/stored-intelligence-report.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(matches, /Search teams/); assert.match(matches, /Match status/); assert.match(matches, /fixture\.status===status/);
   assert.match(results, /result\.fixtureLabel\.toLowerCase/); assert.match(results, /result\.outcome===status/);
   assert.match(application, /getResultsCentreData/); assert.doesNotMatch(matches, /mock-data/); assert.doesNotMatch(results, /mock-data/);
-  assert.match(report, /Why this prediction/); assert.match(report, /ShareReport/); assert.match(report, /Team comparison/);
+  assert.match(report, /StoredIntelligenceReport/); assert.match(storedReport, /Why this prediction/); assert.match(storedReport, /ShareReport/); assert.match(storedReport, /Team comparison/); assert.match(storedReport, /Frozen model output/);
 });
 
 test("unknown fixture renders the safe not-found experience", async () => {
@@ -73,6 +74,8 @@ test("guest responses do not contain registered or Premium report intelligence",
 test("Batch 3C report exposes deterministic multi-market AI intelligence", async () => {
   const response = await render("/matches/ars-che-demo"); const html = await response.text();
   for (const value of ["Recommended market", "Markets analysed", "Match Winner", "Double Chance", "Both Teams To Score", "Over 2.5 Goals", "Tactical outlook", "Expected match flow", "Confidence explanation", "Risk explanation", "Markets to avoid", "AI-assisted football intelligence"]) assert.match(html, new RegExp(value, "i"));
+  assert.match(html, /relative signal, not a guarantee/i);
+  assert.match(html, /Match events, selections and finishing variance can invalidate the projection/i);
 });
 
 test("mock AI provider is provider-compatible, deterministic and offline", async () => {
