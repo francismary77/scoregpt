@@ -53,3 +53,17 @@ test("consumer data path has no persisted-mode demo substitution or historical p
   assert.match(service, /competitions: \[\], fixtures: \[\], results: \[\], reports: \[\]/);
   assert.doesNotMatch(service, /persisted\.results\.length\s*[<>]=?\s*\d[^;]+demo\.results/);
 });
+
+test("consumer fixture and result filters render the same configured competition catalogue", async () => {
+  const [matches, results] = await Promise.all([read("components/match-browser.tsx"), read("components/result-browser.tsx")]);
+  assert.match(matches, /competitions\.map\(item=>/);
+  assert.match(results, /competitions\.map\(item=>/);
+  assert.doesNotMatch(matches, /competitions\.filter\(item=>item\.fixtureCount/);
+});
+
+test("membership display loads membership and the persisted allowance without a duplicate entitlement lookup", async () => {
+  const memberPages = await read("components/member-pages.tsx");
+  assert.match(memberPages, /membershipService\.getDisplay\(user\.id\)/);
+  assert.match(memberPages, /accountRepositories\.predictionUsage\.getRemainingAllowance\(user\.id,entitlementConfig\.freePredictionAllowance\)/);
+  assert.doesNotMatch(memberPages, /predictionEntitlementService\.decide\(user,"registered"\)/);
+});
