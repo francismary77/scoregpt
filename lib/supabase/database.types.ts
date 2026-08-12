@@ -25,7 +25,10 @@ export type Database = {
       intelligence_reports: Table<BaseRow & { fixture_id: string; provider: string; provider_version: string | null; status: string; recommended_market: string | null; confidence: number | null; risk_level: string | null; reasoning: string | null; analysis: Json; generated_at: string | null; source_data_fetched_at: string | null; source_reference: string | null; access_level: "public" | "registered" | "premium"; consumer_publication_state: "NOT_PUBLISHED" | "READY_FOR_REVIEW" | "PUBLISHED" | "WITHDRAWN"; forward_prediction_id: string | null; is_demo: boolean }>;
       prediction_markets: Table<BaseRow & { intelligence_report_id: string; market_type: string; prediction: string; confidence: number; risk_level: string; reasoning: string; sort_order: number }>;
       orders: Table<BaseRow & { order_number: string; user_id: string | null; buyer_name: string; buyer_email: string; buyer_phone: string | null; brand_name: string | null; package_id: string; package_name: string; amount_minor: number; currency: string; payment_method: string; status: string; verified_at: string | null }>;
-      payment_transactions: Table<{ id: string; order_id: string; provider: string; reference: string; amount_minor: number; currency: string; status: string; metadata: Json; created_at: string; updated_at: string }>;
+      payment_transactions: Table<{ id:string; order_id:string|null; provider:string; reference:string; amount_minor:number; currency:string; status:string; metadata:Json; purpose:"business_setup"|"consumer_subscription"|"managed_platform"|"client_subscriber_split"; subject_type:"order"|"user"|"business_client"|"client_platform"; subject_id:string; environment:"test"|"live"; product_id:string|null; price_id:string|null; expected_amount_minor:number; paid_amount_minor:number|null; transaction_state:"initialized"|"pending"|"succeeded"|"failed"|"cancelled"; verified_at:string|null; created_at:string; updated_at:string }>;
+      payment_products: Table<BaseRow & { product_key:string; purpose:"business_setup"|"consumer_subscription"|"managed_platform"|"client_subscriber_split"; name:string; active:boolean; metadata:Json }>;
+      payment_prices: Table<BaseRow & { product_id:string; version:number; kind:"standard"|"promotional"|"current"; amount_minor:number; currency:string; billing_interval:"one_time"|"monthly"; active:boolean; effective_from:string; effective_until:string|null; provider:string|null; provider_environment:"test"|"live"|null; provider_plan_reference:string|null; metadata:Json }>;
+      payment_customers: Table<BaseRow & { subject_type:"order"|"user"|"business_client"|"client_platform"; subject_id:string; provider:string; environment:"test"|"live"; provider_customer_reference:string; metadata:Json }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -34,7 +37,7 @@ export type Database = {
       prepare_consumer_prediction: { Args: { p_forward_prediction_id: string; p_access_level?: "public" | "registered" | "premium" }; Returns: string };
       transition_consumer_prediction: { Args: { p_report_id: string; p_target_state: "NOT_PUBLISHED" | "READY_FOR_REVIEW" | "PUBLISHED" | "WITHDRAWN" }; Returns: string };
     };
-    Enums: Record<string, never>;
+    Enums: { payment_purpose:"business_setup"|"consumer_subscription"|"managed_platform"|"client_subscriber_split"; payment_environment:"test"|"live"; payment_subject_type:"order"|"user"|"business_client"|"client_platform"; payment_transaction_state:"initialized"|"pending"|"succeeded"|"failed"|"cancelled"; payment_price_kind:"standard"|"promotional"|"current"; payment_billing_interval:"one_time"|"monthly" };
     CompositeTypes: Record<string, never>;
   };
 };
