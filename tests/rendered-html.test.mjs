@@ -67,6 +67,14 @@ test("contact page makes WhatsApp the primary platform-sales channel", async () 
   assert.match(html, /Platform Sales/); assert.match(html, /Chat With Us on WhatsApp/); assert.match(html, /2348105016931/);
 });
 
+test("Batch 2 makes B2B ownership primary without removing flagship consumer routes", async () => {
+  const home=await(await render("/")).text(),sales=await(await render("/sales")).text(),pricing=await(await render("/pricing")).text();
+  for(const value of["Own a Platform","View Business Packages","Own Your Own AI Football Intelligence Platform","Explore the flagship platform"])assert.match(home,new RegExp(value,"i"));
+  for(const value of["Built for Football Businesses and Communities","What You Receive","Build Your Own Subscription Revenue","Free Access plus one paid tier","Free Access plus two paid tiers","You control","We manage","Some costs may be separate","See the Technology in Action"])assert.match(sales,new RegExp(value,"i"));
+  assert.match(pricing,/Consumer membership/i);assert.match(pricing,/Member Access/i);assert.match(home,/href="\/matches"/);assert.match(home,/href="\/pricing"/);
+  assert.doesNotMatch(`${home}${sales}`,/>\s*(?:Demo|Sample site|Prototype|Test platform)\s*</i);
+});
+
 test("Batch 4F homepage and football routes render repository read-model sections",async()=>{const home=await(await render("/")).text(),matches=await(await render("/matches")).text(),results=await(await render("/results")).text(),competitions=await(await render("/competitions")).text();for(const value of["Built for 30 Top Football Leagues","Upcoming matches","Football intelligence preview","Recent results"])assert.match(home,new RegExp(value,"i"));assert.match(matches,/Upcoming/);assert.match(matches,/Competition/);assert.match(results,/Completed and cancelled fixtures/);assert.match(competitions,/rolling out competition by competition/i);assert.doesNotMatch(home,/all 30 (?:are )?live/i)});
 
 test("guest responses do not contain registered or Premium report intelligence",async()=>{const registered=await(await render("/matches/int-ata-demo")).text(),premium=await(await render("/matches/bar-bay-demo")).text();assert.match(registered,/Create an account to continue/);assert.match(premium,/Create an account to continue/);assert.doesNotMatch(registered,/Both attacking profiles support at least two total goals/);assert.doesNotMatch(premium,/Elite attacking quality raises the ceiling/)});

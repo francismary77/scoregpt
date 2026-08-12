@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal-document";
-export const metadata:Metadata={title:"Privacy Policy",description:"How FABRO TECH LIMITED handles information for 9ja Football AI."};
+import { getSiteUrl } from "@/config/site";
+export const metadata:Metadata={title:"Privacy Policy",description:"How FABRO TECH LIMITED handles information for 9ja Football AI.",alternates:{canonical:`${getSiteUrl()}/privacy`}};
 export default function Page(){return <LegalDocument eyebrow="Legal" title="Privacy Policy" intro="This policy explains how FABRO TECH LIMITED handles information when you use 9ja Football AI.">
 <h2>Information we process</h2><p>When you create an account, we process your display name, email address, account identifier and authentication state. Passwords are handled by our authentication provider and are not displayed to us in readable form. We also process membership status, free-prediction usage and saved prediction entitlements needed to operate account access.</p>
 <p>Our hosting and security infrastructure may process technical information such as IP address, browser or device details, timestamps, request logs and error information. If payment functionality is used, we may retain order, package, amount and payment-status records; payment providers process payment details under their own policies.</p>

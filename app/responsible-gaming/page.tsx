@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal-document";
-export const metadata:Metadata={title:"Responsible Use",description:"Responsible-use guidance for 9ja Football AI football predictions and analysis."};
+import { getSiteUrl } from "@/config/site";
+export const metadata:Metadata={title:"Responsible Use",description:"Responsible-use guidance for 9ja Football AI football predictions and analysis.",alternates:{canonical:`${getSiteUrl()}/responsible-gaming`}};
 export default function Page(){return <LegalDocument eyebrow="Responsible use" title="Use football intelligence responsibly" intro="Football predictions are uncertain. Treat 9ja Football AI as informational analysis, never as a promise of an outcome or profit.">
 <h2>What we provide</h2><p>9ja Football AI provides statistics, probability-based predictions and football intelligence. Predictions can be wrong, confidence is not certainty, and past performance does not guarantee future results.</p>
 <h2>What we do not provide</h2><p>9ja Football AI and FABRO TECH LIMITED are not bookmakers. We do not accept wagers, hold betting funds, place bets for users or guarantee winnings.</p>

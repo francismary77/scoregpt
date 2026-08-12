@@ -4,8 +4,9 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SectionHeading } from "@/components/section-heading";
 import { brand } from "@/config/brand";
+import { getSiteUrl } from "@/config/site";
 
-export const metadata: Metadata = { title: "About", description: `Learn how ${brand.siteName} combines football data, statistical analysis and AI reasoning with transparent results.` };
+export const metadata: Metadata = { title: "About", description: `Learn how ${brand.siteName} combines football intelligence with the platform technology ${brand.companyName} supplies to clients.`, alternates:{canonical:`${getSiteUrl()}/about`} };
 
 const principles = [
   ["Data before opinion", "Match information and statistical signals provide the foundation for each analysis."],

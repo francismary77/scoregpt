@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal-document";
-export const metadata:Metadata={title:"Business Platform Terms",description:"Terms for branded football-intelligence platform development and managed services from FABRO TECH LIMITED."};
+import { getSiteUrl } from "@/config/site";
+export const metadata:Metadata={title:"Business Platform Terms",description:"Terms for branded football-intelligence platform development and managed services from FABRO TECH LIMITED.",alternates:{canonical:`${getSiteUrl()}/business-terms`}};
 export default function Page(){return <LegalDocument eyebrow="Business services" title="Platform Development and Service Terms" intro="These terms apply when FABRO TECH LIMITED builds, configures or manages a branded football-intelligence platform for a business client.">
 <h2>1. Service scope</h2><p>We provide technology services: configuration, branding, deployment and, where included, managed hosting and infrastructure for a client-specific AI football-intelligence platform. The agreed package, written quotation and confirmed requirements define the project scope.</p>
 <h2>2. Packages</h2><h3>Launch Edition</h3><p>A branded platform with a free member-access tier and one paid subscriber tier, together with the Launch features represented on the Sales page.</p><h3>Business Edition</h3><p>An expanded platform with a free member-access tier, two paid subscriber tiers and the additional Business capabilities represented on the Sales page. The second paid tier gives the client an additional monetisation option; subscriber revenue belongs to the client subject to payment-provider fees, applicable law and the client’s arrangements.</p>

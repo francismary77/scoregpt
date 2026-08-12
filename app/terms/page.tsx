@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDocument } from "@/components/legal-document";
-export const metadata:Metadata={title:"Terms of Use",description:"Terms governing use of the 9ja Football AI website and football-intelligence service."};
+import { getSiteUrl } from "@/config/site";
+export const metadata:Metadata={title:"Terms of Use",description:"Terms governing use of the 9ja Football AI website and football-intelligence service.",alternates:{canonical:`${getSiteUrl()}/terms`}};
 export default function Page(){return <LegalDocument eyebrow="Legal" title="Terms of Use" intro="These terms govern access to 9ja Football AI, a football-intelligence technology service operated by FABRO TECH LIMITED.">
 <h2>1. The service</h2><p>9ja Football AI provides football information, statistics, probability-based predictions and analytical intelligence. FABRO TECH LIMITED is a technology and software provider. It is not a bookmaker, does not accept wagers and does not place bets for users.</p>
 <h2>2. Informational analysis</h2><p>Predictions are probabilistic, may be incomplete or wrong, and do not guarantee accuracy, a sporting result or financial profit. You remain solely responsible for how you use the information and for every financial or betting decision you make.</p>

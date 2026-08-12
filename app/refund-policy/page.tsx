@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal-document";
-export const metadata:Metadata={title:"Refund and Cancellation Policy",description:"Refund and cancellation treatment for FABRO TECH LIMITED platform-development and managed services."};
+import { getSiteUrl } from "@/config/site";
+export const metadata:Metadata={title:"Refund and Cancellation Policy",description:"Refund and cancellation treatment for FABRO TECH LIMITED platform-development and managed services.",alternates:{canonical:`${getSiteUrl()}/refund-policy`}};
 export default function Page(){return <LegalDocument eyebrow="Commercial policy" title="Refund and Cancellation Policy" intro="Custom software work is delivered through service milestones. Refund decisions therefore reflect work completed and costs already incurred.">
 <h2>Before work begins</h2><p>If a client cancels before implementation starts, a refund may be available after deducting agreed administrative work and non-recoverable third-party costs already incurred for the project.</p>
 <h2>After implementation starts</h2><p>Once discovery, design, configuration, development or deployment work begins, setup payments become partly or fully non-refundable in proportion to completed work, committed resources and incurred costs. We will provide a reasonable explanation of the amount retained.</p>
