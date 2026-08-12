@@ -74,7 +74,7 @@ test("frozen shadow output is mapped without invented fixture analysis", async (
   assert.match(renderer, /No generic fixture analysis is substituted/);
   assert.match(fallback, /confidenceExplanation: report\.confidenceExplanation/);
   assert.match(fallback, /riskExplanation: report\.riskIntelligence\.explanation/);
-  const [forwardBranch, demoBranch = ""] = renderer.split(' : <>\n      <h4>Why this prediction?</h4>');
+  const [forwardBranch, demoBranch = ""] = renderer.split(/ : <>\r?\n      <h4>Why this prediction\?<\/h4>/);
   assert.doesNotMatch(forwardBranch, /<h4>Confidence explanation<\/h4>/);
   assert.doesNotMatch(forwardBranch, /<h4>Risk explanation<\/h4>/);
   assert.doesNotMatch(forwardBranch, /Team comparison|Tactical outlook|Expected match flow|Markets to avoid/);
