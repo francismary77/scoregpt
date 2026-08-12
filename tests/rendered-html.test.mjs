@@ -54,10 +54,11 @@ test("unknown fixture renders the safe not-found experience", async () => {
 });
 
 test("Batch 3A sales page preserves approved commercial facts and WhatsApp journeys", async () => {
-  const response = await render("/sales"); const html = await response.text(); const visibleHtml=html.replaceAll("<!-- -->","").replaceAll("&amp;","&");
+  const response = await render("/sales"); const html = await response.text(); const visibleHtml=html.replaceAll("<!-- -->","").replaceAll("&amp;","&"); const [salesSource,inquirySource]=await Promise.all([readFile(new URL("../app/sales/page.tsx",import.meta.url),"utf8"),readFile(new URL("../components/business-inquiry-form.tsx",import.meta.url),"utf8")]);
   for (const value of ["Launch Edition", "Business Edition", "7–14 Working Days", "14–21 Working Days", "₦500,000", "₦350,000", "₦1,000,000", "₦750,000", "₦18,000/month from month 7", "₦24,000/month from month 7", "First 6 months included", "30 Top Football Leagues & Competitions", "+234 810 501 6931", "Have questions before you decide?", "What We Need From You", "How long does it take to launch my platform?"]) assert.match(visibleHtml, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
   assert.doesNotMatch(visibleHtml, /first 12 months|after the first year|₦12,000\/month|Platform Care/i);
   assert.match(html, /https:\/\/wa\.me\/2348105016931\?text=/);
+  assert.match(salesSource,/Can I speak to someone before buying\?[\s\S]*brand\.contactPhone/);assert.doesNotMatch(salesSource,/<b>\{brand\.contactPhone\}<\/b>/);assert.doesNotMatch(inquirySource,/<small>\{brand\.contactPhone\}<\/small>/);
   assert.match(decodeURIComponent(html), /Hello FABRO TECH LIMITED, I am interested in the 9ja Football AI Launch Edition/);
   assert.match(decodeURIComponent(html), /Hello FABRO TECH LIMITED, I am interested in the 9ja Football AI Business Edition/);
 });
@@ -85,6 +86,7 @@ test("final review amendments preserve commercial terms and expose mobile naviga
   const terms=await(await render("/business-terms")).text(),home=await(await render("/")).text(),footer=await readFile(new URL("../components/site-footer.tsx",import.meta.url),"utf8"),header=await readFile(new URL("../components/site-header.tsx",import.meta.url),"utf8");
   for(const value of["₦18,000 per month for Launch Edition","₦24,000 per month for Business Edition","fees are subject to periodic review","reasonable advance notice","normal fair-use level","must not be represented as a bookmaker","customers and subscribers"])assert.match(terms,new RegExp(value,"i"));
   assert.match(home,/Open navigation menu/);assert.match(header,/Mobile navigation/);assert.match(header,/Close navigation menu/);for(const value of["Today's Matches","Results","Competitions","Member Access","About","Own a Platform","Log in","Get started"])assert.match(header,new RegExp(value,"i"));
+  assert.match(header,/createPortal\([\s\S]*document\.body/);
   assert.equal((footer.match(/href="\/contact"/g)??[]).length,1);assert.match(footer,/Company[\s\S]*href="\/contact"/);assert.doesNotMatch(footer,/Legal[\s\S]*href="\/contact"/);
 });
 
