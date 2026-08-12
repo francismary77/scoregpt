@@ -86,6 +86,7 @@ test("final review amendments preserve commercial terms and expose mobile naviga
   const terms=await(await render("/business-terms")).text(),home=await(await render("/")).text(),footer=await readFile(new URL("../components/site-footer.tsx",import.meta.url),"utf8"),header=await readFile(new URL("../components/site-header.tsx",import.meta.url),"utf8");
   for(const value of["₦18,000 per month for Launch Edition","₦24,000 per month for Business Edition","fees are subject to periodic review","reasonable advance notice","normal fair-use level","must not be represented as a bookmaker","customers and subscribers"])assert.match(terms,new RegExp(value,"i"));
   assert.match(home,/Open navigation menu/);assert.match(header,/Mobile navigation/);assert.match(header,/Close navigation menu/);for(const value of["Today's Matches","Results","Competitions","Member Access","About","Own a Platform","Log in","Get started"])assert.match(header,new RegExp(value,"i"));
+  assert.match(header,/href="\/register"[\s\S]*>Create Account<\/Link>/);
   assert.match(header,/createPortal\([\s\S]*document\.body/);
   assert.equal((footer.match(/href="\/contact"/g)??[]).length,1);assert.match(footer,/Company[\s\S]*href="\/contact"/);assert.doesNotMatch(footer,/Legal[\s\S]*href="\/contact"/);
 });
