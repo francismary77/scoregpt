@@ -30,7 +30,9 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       list_consumer_prediction_catalog: { Args: Record<string, never>; Returns: Array<{ report_id: string; fixture_id: string; access_level: "public" | "registered" | "premium" }> };
-      unlock_consumer_prediction: { Args: { p_fixture_id: string; p_allowance?: number }; Returns: Array<{ report_id: string; already_unlocked: boolean; remaining: number }> };
+      unlock_consumer_prediction: { Args: { p_fixture_id: string }; Returns: Array<{ report_id: string; already_unlocked: boolean; remaining: number }> };
+      prepare_consumer_prediction: { Args: { p_forward_prediction_id: string; p_access_level?: "public" | "registered" | "premium" }; Returns: string };
+      transition_consumer_prediction: { Args: { p_report_id: string; p_target_state: "NOT_PUBLISHED" | "READY_FOR_REVIEW" | "PUBLISHED" | "WITHDRAWN" }; Returns: string };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

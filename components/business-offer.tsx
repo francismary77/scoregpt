@@ -14,12 +14,12 @@ export function BusinessOffer() {
     <section className="business-section" aria-labelledby="business-title">
       <div className="container business-inner">
         <div className="business-copy">
-          <span className="eyebrow">For football business owners</span>
-          <h2 id="business-title">Build Your Own AI Football Prediction Brand</h2>
-          <p>Purchase the setup and build of your own branded AI-powered football intelligence business, with the first six months of managed platform service included.</p>
+          <span className="eyebrow">Built and supplied by FABRO TECH LIMITED</span>
+          <h2 id="business-title">Own Your Own AI Football Intelligence Platform</h2>
+          <p>Launch a branded football intelligence platform for your audience, community or sports business. We build, configure and deploy the technology while you focus on growing your brand and subscribers.</p>
           <div className="business-actions">
-            <Link href="/sales" className="button">View Business Packages <span>→</span></Link>
-            <Link href="#today-matches" className="button button-ghost">See What You Can Own <span>↓</span></Link>
+            <Link href="/sales" className="button">Own a Platform <span>→</span></Link>
+            <Link href="/sales#packages" className="button button-ghost">View Business Packages <span>→</span></Link>
           </div>
         </div>
         <div className="business-detail">
@@ -29,7 +29,7 @@ export function BusinessOffer() {
           </div>
           <div className="business-points"><span>Your brand.</span><span>Your domain.</span><span>Your subscribers.</span><span>Your pricing.</span></div>
           <ul>{capabilities.map((capability) => <li key={capability}>{capability}</li>)}</ul>
-          <small>Live coverage for all 30 competitions is not active on the current 9ja Football AI demonstration platform.</small>
+          <small>Competition coverage is configurable and expands as competitions and provider services are enabled.</small>
         </div>
       </div>
     </section>

@@ -18,7 +18,7 @@ export function IntelligenceFlow() {
             {index < stages.length - 1 && <b className="flow-arrow" aria-hidden="true">→</b>}
           </article>)}
         </div>
-        <p className="flow-demo">Illustrative intelligence flow using demonstration data</p>
+        <p className="flow-demo">Illustrative flow showing how available football information becomes a report</p>
       </div>
     </section>
   );

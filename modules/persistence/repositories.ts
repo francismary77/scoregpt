@@ -102,15 +102,11 @@ export class SupabasePredictionUsageRepository implements PredictionUsageReposit
       .in("usage_type", ["report-view", "report-unlock"])
       .order("created_at", { ascending: false });
     throwOnError(error);
-    const ids = [...new Set((data ?? []).flatMap((row) => row.fixture_id ? [row.fixture_id] : []))];
-    const fixtures = ids.length ? await this.client.from("fixtures").select("id,provider_fixture_id").in("id", ids) : { data: [], error: null };
-    throwOnError(fixtures.error);
-    const labels = new Map((fixtures.data ?? []).map((fixture) => [fixture.id, fixture.provider_fixture_id ?? fixture.id]));
-    const viewedFixtureIds = ids.map((id) => labels.get(id) ?? id);
+    const viewedFixtureIds = [...new Set((data ?? []).flatMap((row) => row.fixture_id ? [row.fixture_id] : []))];
     return {
       userId,
       viewedFixtureIds,
-      used: ids.length,
+      used: viewedFixtureIds.length,
       updatedAt: data?.[0]?.created_at ?? new Date(0).toISOString(),
     };
   }
@@ -141,9 +137,9 @@ export class SupabasePredictionUsageRepository implements PredictionUsageReposit
     return this.getUsageForUser(userId);
   }
 
-  async unlockPrediction(_userId: string, fixtureId: string, allowance: number) {
+  async unlockPrediction(_userId: string, fixtureId: string) {
     const persistedFixtureId = await this.resolveFixtureId(fixtureId);
-    const { data, error } = await this.client.rpc("unlock_consumer_prediction", { p_fixture_id: persistedFixtureId, p_allowance: allowance });
+    const { data, error } = await this.client.rpc("unlock_consumer_prediction", { p_fixture_id: persistedFixtureId });
     throwOnError(error);
     const result = data?.[0];
     if (!result) throw new Error("Prediction unlock did not return a result.");
