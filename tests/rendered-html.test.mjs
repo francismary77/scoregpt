@@ -81,6 +81,13 @@ test("Batch 3 Sales metadata uses the dedicated 1200x630 B2B social card", async
   assert.equal(png.readUInt32BE(16),1200);assert.equal(png.readUInt32BE(20),630);
 });
 
+test("final review amendments preserve commercial terms and expose mobile navigation", async () => {
+  const terms=await(await render("/business-terms")).text(),home=await(await render("/")).text(),footer=await readFile(new URL("../components/site-footer.tsx",import.meta.url),"utf8"),header=await readFile(new URL("../components/site-header.tsx",import.meta.url),"utf8");
+  for(const value of["₦18,000 per month for Launch Edition","₦24,000 per month for Business Edition","fees are subject to periodic review","reasonable advance notice","normal fair-use level","must not be represented as a bookmaker","customers and subscribers"])assert.match(terms,new RegExp(value,"i"));
+  assert.match(home,/Open navigation menu/);assert.match(header,/Mobile navigation/);assert.match(header,/Close navigation menu/);for(const value of["Today's Matches","Results","Competitions","Member Access","About","Own a Platform","Log in","Get started"])assert.match(header,new RegExp(value,"i"));
+  assert.equal((footer.match(/href="\/contact"/g)??[]).length,1);assert.match(footer,/Company[\s\S]*href="\/contact"/);assert.doesNotMatch(footer,/Legal[\s\S]*href="\/contact"/);
+});
+
 test("Batch 4F homepage and football routes render repository read-model sections",async()=>{const home=await(await render("/")).text(),matches=await(await render("/matches")).text(),results=await(await render("/results")).text(),competitions=await(await render("/competitions")).text();for(const value of["Built for 30 Top Football Leagues","Upcoming matches","Football intelligence preview","Recent results"])assert.match(home,new RegExp(value,"i"));assert.match(matches,/Upcoming/);assert.match(matches,/Competition/);assert.match(results,/Completed and cancelled fixtures/);assert.match(competitions,/rolling out competition by competition/i);assert.doesNotMatch(home,/all 30 (?:are )?live/i)});
 
 test("guest responses do not contain registered or Premium report intelligence",async()=>{const registered=await(await render("/matches/int-ata-demo")).text(),premium=await(await render("/matches/bar-bay-demo")).text();assert.match(registered,/Create an account to continue/);assert.match(premium,/Create an account to continue/);assert.doesNotMatch(registered,/Both attacking profiles support at least two total goals/);assert.doesNotMatch(premium,/Elite attacking quality raises the ceiling/)});
