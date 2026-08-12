@@ -29,6 +29,9 @@ export type Database = {
       payment_products: Table<BaseRow & { product_key:string; purpose:"business_setup"|"consumer_subscription"|"managed_platform"|"client_subscriber_split"; name:string; active:boolean; metadata:Json }>;
       payment_prices: Table<BaseRow & { product_id:string; version:number; kind:"standard"|"promotional"|"current"; amount_minor:number; currency:string; billing_interval:"one_time"|"monthly"; active:boolean; effective_from:string; effective_until:string|null; provider:string|null; provider_environment:"test"|"live"|null; provider_plan_reference:string|null; metadata:Json }>;
       payment_customers: Table<BaseRow & { subject_type:"order"|"user"|"business_client"|"client_platform"; subject_id:string; provider:string; environment:"test"|"live"; provider_customer_reference:string; metadata:Json }>;
+      consumer_subscriptions: Table<BaseRow & {user_id:string;billing_customer_id:string;product_id:string;price_id:string;provider:string;environment:"test"|"live";provider_plan_reference:string;provider_subscription_reference:string;amount_minor:number;currency:"NGN";billing_interval:"monthly";status:"pending"|"active"|"past_due"|"cancelled"|"expired"|"failed";entitlement_status:"inactive"|"active"|"suspended"|"expired";started_at:string|null;current_period_start:string|null;current_period_end:string|null;next_billing_at:string|null;cancel_at_period_end:boolean;cancelled_at:string|null}>;
+      consumer_subscription_checkouts: Table<{id:string;user_id:string;idempotency_key:string;subscription_id:string|null;provider_reference:string;created_at:string}>;
+      consumer_subscription_events: Table<{id:string;provider:string;environment:"test"|"live";provider_event_reference:string;event_type:string;subscription_id:string|null;processed_at:string}>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -37,6 +40,7 @@ export type Database = {
       prepare_consumer_prediction: { Args: { p_forward_prediction_id: string; p_access_level?: "public" | "registered" | "premium" }; Returns: string };
       transition_consumer_prediction: { Args: { p_report_id: string; p_target_state: "NOT_PUBLISHED" | "READY_FOR_REVIEW" | "PUBLISHED" | "WITHDRAWN" }; Returns: string };
       confirm_business_setup_payment: { Args: { p_order_id:string;p_transaction_id:string;p_reference:string;p_amount_minor:number }; Returns:string };
+      has_active_consumer_subscription:{Args:{p_user_id:string};Returns:boolean};
     };
     Enums: { payment_purpose:"business_setup"|"consumer_subscription"|"managed_platform"|"client_subscriber_split"; payment_environment:"test"|"live"; payment_subject_type:"order"|"user"|"business_client"|"client_platform"; payment_transaction_state:"initialized"|"pending"|"succeeded"|"failed"|"cancelled"; payment_price_kind:"standard"|"promotional"|"current"; payment_billing_interval:"one_time"|"monthly" };
     CompositeTypes: Record<string, never>;
