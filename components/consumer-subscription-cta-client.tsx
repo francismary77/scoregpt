@@ -1,0 +1,9 @@
+"use client";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+export function ConsumerSubscriptionCtaClient() {
+  const [key] = useState(() => crypto.randomUUID().replaceAll("-", "_")), [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const label = useMemo(() => busy ? "Opening secure Paystack checkout…" : "Subscribe securely with Paystack", [busy]);
+  async function start() { setBusy(true); setError(""); try { const response = await fetch("/api/payments/consumer-subscription/initialize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idempotencyKey: key }) }); const result = await response.json() as { authorizationUrl?: string; error?: string; accountUrl?: string }; if (response.status === 401) { window.location.assign("/login?next=%2Fpricing"); return; } if (result.accountUrl) { window.location.assign(result.accountUrl); return; } if (!response.ok || !result.authorizationUrl) throw new Error(result.error); window.location.assign(result.authorizationUrl); } catch { setError("Subscription checkout could not be started. No payment was taken."); setBusy(false); } }
+  return <div className="consumer-checkout-cta"><button className="button" type="button" disabled={busy} onClick={start}>{label}</button><small>₦3,000 monthly · Paystack only · recurring subscription</small>{error&&<p role="alert" className="form-error">{error} <Link href="/contact">Get help</Link></p>}</div>;
+}

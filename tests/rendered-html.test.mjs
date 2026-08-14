@@ -9,7 +9,7 @@ async function render(path = "/") {
   return worker.fetch(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-for (const [path, expected] of [["/", "AI-Powered Football Predictions"], ["/matches", "Match Centre"], ["/results", "Results Centre"], ["/competitions", "30 Top Football Leagues"], ["/competitions/premier-league", "Premier League"], ["/matches/ars-che-demo", "Recommended market"], ["/register", "Create your free account"], ["/login", "Secure member access"], ["/forgot-password", "Reset your password"], ["/reset-password", "Choose a new password"], ["/checkout/platform/launch", "Bank Transfer"], ["/checkout/platform/business", "Bank Transfer"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
+for (const [path, expected] of [["/", "AI-Powered Football Predictions"], ["/matches", "Match Centre"], ["/results", "Results Centre"], ["/competitions", "30 Top Football Leagues"], ["/competitions/premier-league", "Premier League"], ["/matches/ars-che-demo", "Recommended market"], ["/register", "Create your free account"], ["/login", "Secure member access"], ["/forgot-password", "Reset your password"], ["/reset-password", "Choose a new password"], ["/checkout/platform/launch", "Payments are not currently available"], ["/checkout/platform/business", "Payments are not currently available"], ["/sales", "Founder Launch Offer"], ["/pricing", "Start free"], ["/about", "Building trust"], ["/contact", "How can we help"]]) {
   test(`server renders ${path}`, async () => { const response = await render(path); assert.equal(response.status, 200); assert.match(await response.text(), new RegExp(expected, "i")); });
 }
 
@@ -112,11 +112,9 @@ test("mock AI provider is provider-compatible, deterministic and offline", async
   assert.match(application, /new MockAIIntelligenceProvider/); assert.match(domain, /"very-high"\|"high"\|"medium"\|"low"/);
 });
 
-test("B2B checkout remains pending and gates transfer facts behind trusted order creation", async () => {
-  const launch = (await (await render("/checkout/platform/launch")).text()).replaceAll("<!-- -->",""); const business = (await (await render("/checkout/platform/business")).text()).replaceAll("<!-- -->","");
-  for (const html of [launch,business]) { assert.match(html,/Pending Payment/); assert.match(html,/Business Terms/); assert.match(html,/Refund\/Cancellation Policy/); assert.match(html,/Create bank-transfer order/i); assert.match(html,/trusted order reference/i); assert.doesNotMatch(html,/0603685542/); }
-  assert.match(launch,/₦350,000/); assert.match(launch,/₦18,000\/month/); assert.match(launch,/First 6 months included/);
-  assert.match(business,/₦750,000/); assert.match(business,/₦24,000\/month/);
+test("B2B checkout is non-actionable while payments are disabled", async () => {
+  const launch = await (await render("/checkout/platform/launch")).text(); const business = await (await render("/checkout/platform/business")).text();
+  for (const html of [launch,business]) { assert.match(html,/No payment action is available/); assert.match(html,/No order or payment record will be created/); assert.doesNotMatch(html,/Create bank-transfer order|Pay .* with Paystack|0603685542/); }
 });
 
 test("billing providers are swappable placeholders with no live gateway calls", async () => {
