@@ -10,7 +10,8 @@ export class PaymentService {
   constructor(providers: Map<string, PaymentProvider>, activeProviderId: string) { this.providers = providers; this.activeProviderId = activeProviderId; }
   getPaymentMethods(): PaymentMethod[] {
     const paymentsEnabled = process.env.PAYMENTS_ENABLED === "true";
-    const safePaystack = paymentsEnabled && process.env.PAYMENT_PROVIDER === "paystack" && process.env.PAYSTACK_ENVIRONMENT === "test" && process.env.PAYSTACK_SECRET_KEY?.startsWith("sk_test_");
+    const environment = process.env.PAYSTACK_ENVIRONMENT;
+    const safePaystack = paymentsEnabled && process.env.PAYMENT_PROVIDER === "paystack" && (environment === "test" || environment === "live") && process.env.PAYSTACK_SECRET_KEY?.startsWith(environment === "live" ? "sk_live_" : "sk_test_");
     return businessPaymentConfig.methods.map((item) => ({ id: item.id, providerId: item.id, type: item.id === "manual-bank" ? "bank-transfer" : "card", label: item.label, enabled: paymentsEnabled && (item.id === "manual-bank" || (item.id === "paystack" && Boolean(safePaystack))), availability: paymentsEnabled && (item.id === "manual-bank" || (item.id === "paystack" && safePaystack)) ? "available" : item.availability }));
   }
   getActiveProvider() { const provider = this.providers.get(this.activeProviderId); if (!provider) throw new Error("Configured payment provider is unavailable."); return provider; }
