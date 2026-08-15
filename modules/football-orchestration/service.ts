@@ -29,17 +29,22 @@ export class FootballProductionOrchestrator{
   const selected=historicalLeagueTargets.filter(target=>!requested.size||requested.has(target.id));
   if(!selected.length||requested.size!==selected.length)throw new Error("Historical ingestion rejected an unknown competition target.");
   const audits:unknown[]=[],provider=new ApiFootballProvider({apiKey:server.apiKey,enabled:server.enabled,onRequest:audit=>audits.push(audit)}),repository=new SupabaseFootballIngestionRepository(this.client),requests=new SupabaseProviderRequestRepository(this.client),results=[];
+  const verifiedTargets=[];
+  if(selected.length*3>controls.maxProviderRequestsPerRun)throw new Error("Historical ingestion request ceiling is insufficient for the verified cohort.");
   for(const target of selected){
-   if(audits.length+3>controls.maxProviderRequestsPerRun)throw new Error("Historical ingestion request ceiling is insufficient for the verified cohort.");
    const requestedAt=new Date().toISOString(),candidates=await provider.discoverCompetitions({country:target.country,season:target.season});
    const matches=candidates.flatMap(candidate=>candidate.seasons.filter(season=>season.year===target.season&&season.start&&season.end).map(season=>({candidate,season}))).filter(({candidate})=>candidate.providerId===target.providerId&&candidate.name.trim()===target.providerName&&candidate.country.trim()===target.country&&candidate.type===target.type);
    if(matches.length!==1)throw new Error(`Historical mapping verification failed for ${target.id}.`);
    const verified=matches[0],saved=await this.client.from("football_competition_verifications").upsert({provider:"api-football",internal_competition_id:target.id,provider_competition_id:target.providerId,provider_name:target.providerName,country:target.country,competition_type:target.type,season:target.season,season_start:verified.season.start,season_end:verified.season.end,verified_at:requestedAt},{onConflict:"provider,internal_competition_id,season"});
    if(saved.error)throw new Error("Historical mapping verification persistence failed.");
    await requests.recordRequest({provider:"api-football",category:"competition",endpoint:`leagues-verification:${target.id}-${target.season}`,requestedAt,requestCount:1,succeeded:true,cacheState:"missing",refreshReason:"manual",errorCode:null});
-   const result=await ingestHistoricalLeague({target:{...target,verifiedSeasonStart:verified.season.start,verifiedSeasonEnd:verified.season.end},provider,repository,requests,dailyBudget:server.dailyRequestBudget});
+   verifiedTargets.push({target,seasonStart:verified.season.start,seasonEnd:verified.season.end});
+  }
+  if(verifiedTargets.length!==selected.length)throw new Error("All historical mappings must verify before ingestion.");
+  for(const {target,seasonStart,seasonEnd} of verifiedTargets){
+   const result=await ingestHistoricalLeague({target:{...target,verifiedSeasonStart:seasonStart,verifiedSeasonEnd:seasonEnd},provider,repository,requests,dailyBudget:server.dailyRequestBudget});
    if(result.status!=="completed")throw new Error(`Historical ingestion failed for ${target.id}.`);
-   results.push({competition:target.id,providerCompetitionId:target.providerId,season:target.season,seasonStart:verified.season.start,seasonEnd:verified.season.end,teams:result.counts.teams,fixtures:result.counts.fixtures,providerRequests:1+result.requestCount});
+   results.push({competition:target.id,providerCompetitionId:target.providerId,season:target.season,seasonStart,seasonEnd,teams:result.counts.teams,fixtures:result.counts.fixtures,providerRequests:1+result.requestCount});
   }
   if(audits.length>controls.maxProviderRequestsPerRun)throw new Error("Historical ingestion exceeded its provider request ceiling.");
   return{status:"COMPLETED",providerRequests:audits.length,examined:results.length,changed:results.reduce((sum,row)=>sum+row.fixtures,0),summary:{competitions:results}};
