@@ -20,11 +20,13 @@ test("public publication selects only future pending TOP_20 predictions", async 
 });
 
 test("competition pages use customer-facing fixture language", async () => {
-  const [grid, detail] = await Promise.all([
+  const [grid, detail, provenance] = await Promise.all([
     read("components/competition-grid.tsx"),
     read("app/competitions/[competitionId]/page.tsx"),
+    read("components/data-provenance.tsx"),
   ]);
-  assert.doesNotMatch(`${grid}\n${detail}`, /persisted fixture/i);
+  assert.doesNotMatch(`${grid}\n${detail}\n${provenance}`, /persisted fixture|persisted football data/i);
   assert.match(grid, /fixture.*available/);
   assert.match(detail, /when the schedule is available/);
+  assert.match(provenance, /Verified football data/);
 });
