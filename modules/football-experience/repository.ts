@@ -27,7 +27,7 @@ export class SupabaseFootballExperienceRepository implements FootballExperienceR
       competitionIds.length ? this.client.from("fixtures").select("*").in("competition_id", competitionIds).eq("is_demo", false).order("kickoff_at").limit(3000) : empty<Database["public"]["Tables"]["fixtures"]["Row"]>(),
       fixtureIds.length ? this.client.from("intelligence_reports").select("*").in("fixture_id", fixtureIds).eq("status", "published").eq("consumer_publication_state", "PUBLISHED").eq("is_demo", false).order("generated_at", { ascending: false }) : empty<Database["public"]["Tables"]["intelligence_reports"]["Row"]>(),
       fixtureIds.length ? this.client.from("prediction_markets").select("*").order("sort_order").limit(100) : empty<Database["public"]["Tables"]["prediction_markets"]["Row"]>(),
-      fixtureIds.length ? this.client.from("football_data_snapshots").select("id,fixture_id,data_type,payload,is_demo").in("fixture_id", fixtureIds).limit(200) : empty<PersistedFootballRows["snapshots"][number]>(),
+      this.client.from("football_data_snapshots").select("id,fixture_id,data_type,payload,is_demo").eq("is_demo", false).limit(1000),
     ]);
     const responses = [teams, fixtures, reports, markets, snapshots];
     const failed = responses.find((response) => response.error);

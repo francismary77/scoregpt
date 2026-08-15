@@ -16,7 +16,7 @@ export function getServerFootballProviderConfig(env: NodeJS.ProcessEnv = process
   const provider = env.FOOTBALL_DATA_PROVIDER?.trim() === "api-football" ? "api-football" : "disabled";
   return {
     provider,
-    enabled: provider === "api-football" && env.FOOTBALL_DATA_PROVIDER_ENABLED === "true",
+    enabled: provider === "api-football" && (env.FOOTBALL_DATA_PROVIDER_ENABLED === "true" || env.FOOTBALL_FIXTURE_ENRICHMENT_ENABLED === "true"),
     apiKey: env.FOOTBALL_API_KEY?.trim() || null,
     dailyRequestBudget: positiveInteger(env.FOOTBALL_API_DAILY_REQUEST_BUDGET, 6_500),
     dryRun: env.FOOTBALL_INGESTION_DRY_RUN !== "false",
