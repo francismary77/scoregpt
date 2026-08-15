@@ -12,6 +12,7 @@ export type Database = {
   public: {
     Tables: {
       profiles: Table<BaseRow & { user_id: string; display_name: string | null; email: string | null; role: "user" | "admin"; account_status: "active" | "suspended" | "disabled" }>;
+      football_orchestration_runs: Table<{ id:string;job:"ingestion"|"prediction"|"publication"|"settlement";environment:"development"|"production";status:"RUNNING"|"COMPLETED"|"SKIPPED"|"FAILED";dry_run:boolean;started_at:string;completed_at:string|null;provider_requests:number;records_examined:number;records_changed:number;summary:Json;error_code:string|null }>;
       memberships: Table<BaseRow & { user_id: string; plan: string; status: string; starts_at: string | null; expires_at: string | null; source: string; provider_reference: string | null }>;
       prediction_usage: Table<{ id: string; user_id: string; fixture_id: string | null; report_id: string | null; usage_type: string; created_at: string }>;
       competitions: Table<BaseRow & { provider_id: string | null; provider: string; name: string; country: string | null; season: string; enabled: boolean; priority: number; tier: string; last_synced_at: string | null; is_demo: boolean }>;
@@ -46,6 +47,8 @@ export type Database = {
       confirm_manual_business_setup_payment:{Args:{p_order_id:string;p_admin_user_id:string;p_amount_minor:number;p_payment_reference:string;p_audit_note?:string|null;p_environment?:"test"|"live"|null};Returns:string};
       establish_managed_platform_billing:{Args:{p_order_id:string;p_owner_user_id:string;p_record_id?:string;p_environment?:"test"|"live"|null};Returns:string};
       has_active_consumer_subscription:{Args:{p_user_id:string;p_environment:"test"|"live"};Returns:boolean};
+      begin_football_orchestration_run:{Args:{p_job:string;p_environment:string;p_dry_run:boolean;p_stale_after_minutes?:number};Returns:string|null};
+      finish_football_orchestration_run:{Args:{p_run_id:string;p_status:string;p_provider_requests:number;p_records_examined:number;p_records_changed:number;p_summary?:Json;p_error_code?:string|null};Returns:boolean};
     };
     Enums: { payment_purpose:"business_setup"|"consumer_subscription"|"managed_platform"|"client_subscriber_split"; payment_environment:"test"|"live"; payment_subject_type:"order"|"user"|"business_client"|"client_platform"; payment_transaction_state:"initialized"|"pending"|"succeeded"|"failed"|"cancelled"; payment_price_kind:"standard"|"promotional"|"current"; payment_billing_interval:"one_time"|"monthly" };
     CompositeTypes: Record<string, never>;

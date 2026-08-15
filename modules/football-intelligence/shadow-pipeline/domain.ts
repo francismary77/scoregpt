@@ -7,7 +7,7 @@ export type SettlementStatus = "PENDING" | "SETTLED" | "VOID" | "CANCELLED" | "P
 export type ShadowOperationalState = "SHADOW_ONLY" | "SUPPRESSED";
 
 export interface SupportedShadowCompetition { internalCompetitionId: string; providerCompetitionId: string; name: string; providerName?: string; country: string; season: string; enabled: boolean }
-export interface ShadowPipelineControls { enabled: boolean; providerCallsEnabled: boolean; publicPublishingEnabled: false; globallyPaused: boolean; horizonHours: number; maxProviderRequestsPerRun: number; maxFixtureRefreshAgeMinutes: number }
+export interface ShadowPipelineControls { enabled: boolean; providerCallsEnabled: boolean; publicPublishingEnabled: boolean; globallyPaused: boolean; horizonHours: number; maxProviderRequestsPerRun: number; maxFixtureRefreshAgeMinutes: number }
 export interface ShadowPipelineOptions { now: string; dryRun?: boolean; persist?: boolean; providerRefresh?: boolean; horizonHours?: number; minimumLeadMinutes?: number }
 export interface ShadowFixtureSource { dataset: HistoricalDataset; upcomingFixtures: HistoricalFixture[]; supportedCompetition: SupportedShadowCompetition }
 export interface ShadowPredictionRecord {

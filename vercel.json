@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npx next build"
+  "buildCommand": "npx next build",
+  "crons": [
+    { "path": "/api/cron/football/ingestion", "schedule": "17 2 * * *" },
+    { "path": "/api/cron/football/predictions", "schedule": "17 3 * * *" },
+    { "path": "/api/cron/football/publication", "schedule": "17 4 * * *" },
+    { "path": "/api/cron/football/settlement", "schedule": "17 5 * * *" }
+  ]
 }
