@@ -54,7 +54,7 @@ function positiveInteger(value: string | undefined, fallback: number): number {
 export const footballDataConfig = {
   provider: process.env.FOOTBALL_DATA_PROVIDER?.trim() || "disabled",
   liveProviderEnabled: process.env.FOOTBALL_DATA_PROVIDER_ENABLED === "true",
-  dailyRequestBudget: positiveInteger(process.env.FOOTBALL_API_DAILY_REQUEST_BUDGET, 30),
+  dailyRequestBudget: positiveInteger(process.env.FOOTBALL_API_DAILY_REQUEST_BUDGET, 6_500),
   dryRun: process.env.FOOTBALL_INGESTION_DRY_RUN !== "false",
   competitions: footballCompetitions,
 } as const;

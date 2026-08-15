@@ -18,7 +18,7 @@ export function getServerFootballProviderConfig(env: NodeJS.ProcessEnv = process
     provider,
     enabled: provider === "api-football" && env.FOOTBALL_DATA_PROVIDER_ENABLED === "true",
     apiKey: env.FOOTBALL_API_KEY?.trim() || null,
-    dailyRequestBudget: positiveInteger(env.FOOTBALL_API_DAILY_REQUEST_BUDGET, 30),
+    dailyRequestBudget: positiveInteger(env.FOOTBALL_API_DAILY_REQUEST_BUDGET, 6_500),
     dryRun: env.FOOTBALL_INGESTION_DRY_RUN !== "false",
   };
 }

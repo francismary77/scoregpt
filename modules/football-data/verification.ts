@@ -3,7 +3,7 @@ import type { FootballCompetitionConfig } from "@/config/football-data";
 import type { FootballVerificationReport } from "./domain";
 import type { FootballIngestionRepository, ProviderRequestRepository } from "./repositories";
 
-export async function createFootballVerificationReport(repository: FootballIngestionRepository, requests: ProviderRequestRepository, competitions: readonly FootballCompetitionConfig[], competitionId: string, provider = "api-football", dailyBudget = 30, now: Date = new Date()): Promise<FootballVerificationReport> {
+export async function createFootballVerificationReport(repository: FootballIngestionRepository, requests: ProviderRequestRepository, competitions: readonly FootballCompetitionConfig[], competitionId: string, provider = "api-football", dailyBudget = 6_500, now: Date = new Date()): Promise<FootballVerificationReport> {
   const competition = competitions.find((item) => item.id === competitionId);
   if (!competition) throw new Error("The requested competition is not configured.");
   const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
