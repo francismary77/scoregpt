@@ -22,7 +22,8 @@ test("enabled competition Stage A preflight is narrow, complete, and makes zero 
   const item = plan.items[0];
   assert.deepEqual(item.requestedCategories, ["metadata", "teams"]); assert.equal(item.providerCompetitionId, "179"); assert.equal(item.season, "2026"); assert.equal(item.competitionEnabled, true);
   assert.deepEqual(item.cachedCategories, []); assert.deepEqual(item.staleCategories, []); assert.equal(item.estimatedRequests, 2); assert.equal(item.remainingBudgetBefore, 30); assert.equal(item.remainingBudgetAfter, 28); assert.equal(item.allowed, true); assert.match(item.quotaWarning, /confirmed execution/); assert.equal(calls, 0);
-  assert.equal(footballCompetitions.filter((item) => item.enabled).length, 1);
+  assert.equal(footballCompetitions.filter((item) => item.enabled).length, 7);
+  assert.ok(footballCompetitions.filter((item) => item.enabled).every((item) => item.providerVerified && item.providerId && item.currentSeason === "2026"));
 });
 
 test("fresh Stage A cache estimates zero requests", async () => {
