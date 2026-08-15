@@ -60,7 +60,7 @@ export async function runRollingShadowWorker(options: { lockKey: string; sources
   activeLocks.add(options.lockKey);
   try {
     const sources = options.sources.map((source) => ({ ...source, upcomingFixtures: source.upcomingFixtures.filter((fixture) => !options.frozenProviderFixtureIds.has(fixture.providerFixtureId)) }));
-    const report = await runShadowPredictionPipeline(sources, options.repositories, options.controls, options.allowlist, { now: options.now, dryRun: options.persist !== true, persist: options.persist === true, horizonHours: 168, minimumLeadMinutes: 120 });
+    const report = await runShadowPredictionPipeline(sources, options.repositories, options.controls, options.allowlist, { now: options.now, dryRun: options.persist !== true, persist: options.persist === true, horizonHours: options.controls.horizonHours, minimumLeadMinutes: 120 });
     return { status: "COMPLETED" as const, report };
   } finally { activeLocks.delete(options.lockKey); }
 }

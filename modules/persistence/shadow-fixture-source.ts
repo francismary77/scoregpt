@@ -3,13 +3,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import type { HistoricalFixture } from "@/modules/football-data/historical";
 import type { ShadowFixtureSource, SupportedShadowCompetition } from "@/modules/football-intelligence/shadow-pipeline";
+import { MAX_EVALUATION_HORIZON_HOURS } from "@/modules/football-intelligence/prediction-horizon";
 
 type Client = SupabaseClient<Database>;
 const fixture = (row: Database["public"]["Tables"]["fixtures"]["Row"]): HistoricalFixture => ({ id: row.id, providerFixtureId: row.provider_fixture_id ?? "", kickoffAt: row.kickoff_at, status: row.status, homeTeamId: row.home_team_id, awayTeamId: row.away_team_id, homeScore: row.home_score, awayScore: row.away_score });
 
 /** Privileged, server-only and database-first. This adapter never calls a football provider. */
 export async function loadPersistedShadowFixtureSources(client: Client, allowlist: readonly SupportedShadowCompetition[], now: string, horizonHours = 72): Promise<ShadowFixtureSource[]> {
-  const boundedHours = Math.min(Math.max(1, horizonHours), 168), horizonEnd = new Date(new Date(now).getTime() + boundedHours * 3_600_000).toISOString(), sources: ShadowFixtureSource[] = [];
+  if (!Number.isInteger(horizonHours) || horizonHours < 1 || horizonHours > MAX_EVALUATION_HORIZON_HOURS) throw new Error("Invalid persisted-fixture horizon.");
+  const horizonEnd = new Date(new Date(now).getTime() + horizonHours * 3_600_000).toISOString(), sources: ShadowFixtureSource[] = [];
   for (const supported of allowlist.filter((item) => item.enabled)) {
     const competitionResult = await client.from("competitions").select("id,provider_id,name,country,season,provider,enabled").eq("provider_id", supported.providerCompetitionId).eq("season", supported.season).eq("enabled", true).limit(2);
     if (competitionResult.error) throw new Error("Persisted shadow competition lookup failed.");

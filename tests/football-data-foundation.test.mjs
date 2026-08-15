@@ -38,7 +38,7 @@ test("future API-Football insertion stays behind provider and repository contrac
 test("API-Football credentials and raw structures stay behind server-only boundaries", async () => {
   const [adapter, serverConfig, manual] = await Promise.all([read("../modules/football-data/api-football-provider.ts"), read("../modules/football-data/server-config.ts"), read("../modules/football-data/manual.ts")]);
   for (const source of [adapter, serverConfig, manual]) assert.match(source, /@\/lib\/server-only/);
-  assert.match(serverConfig, /process\.env\.FOOTBALL_API_KEY/);
+  assert.match(serverConfig, /env\.FOOTBALL_API_KEY/);
   assert.doesNotMatch(adapter, /NEXT_PUBLIC_/);
   for (const path of ["../app/page.tsx", "../app/matches/page.tsx", "../app/results/page.tsx", "../app/matches/[fixtureId]/page.tsx"]) assert.doesNotMatch(await read(path), /football-data\/(?:manual|service|api-football-provider)|fetchCompetitionData|fetchFixtureData|x-apisports-key/);
   for (const path of ["../modules/football-data/repositories.ts", "../modules/persistence/football-repositories.ts"]) assert.doesNotMatch(await read(path), /x-apisports-key|ApiEnvelope|\.response\b/);

@@ -14,6 +14,7 @@ export interface FootballCompetitionConfig {
   dataCategories: readonly CompetitionDataCategory[];
   providerName?: string;
   providerType?: "League" | "Cup";
+  providerVerified?: boolean;
 }
 
 export interface HistoricalFootballCompetitionMapping { id: string; providerId: string; providerName: string; name: string; country: string; season: string; purpose: "development-history" }
@@ -31,7 +32,7 @@ export const footballCompetitions: readonly FootballCompetitionConfig[] = [
   { id: "serie-a", providerId: "135", name: "Serie A", country: "Italy", currentSeason: "2026", enabled: false, homepageFeatured: false, priority: 40, refreshPriority: "normal", dataCategories: coreCategories },
   { id: "bundesliga", providerId: "78", name: "Bundesliga", country: "Germany", currentSeason: "2026", enabled: false, homepageFeatured: false, priority: 50, refreshPriority: "normal", dataCategories: coreCategories },
   // Provider-verified current season: 31 July 2026 to 10 April 2027. The 2024 development mapping remains above for historical evidence.
-  { id: "scottish-premiership", providerId: "179", providerName: "Premiership", providerType: "League", name: "Scottish Premiership", country: "Scotland", currentSeason: "2026", enabled: true, homepageFeatured: false, priority: 55, refreshPriority: "high", dataCategories: coreCategories },
+  { id: "scottish-premiership", providerId: "179", providerName: "Premiership", providerType: "League", providerVerified:true,name: "Scottish Premiership", country: "Scotland", currentSeason: "2026", enabled: true, homepageFeatured: false, priority: 55, refreshPriority: "high", dataCategories: coreCategories },
   ...[
     ["europa-league", "UEFA Europa League", "Europe"], ["conference-league", "UEFA Conference League", "Europe"], ["fa-cup", "FA Cup", "England"], ["efl-cup", "EFL Cup", "England"], ["championship", "EFL Championship", "England"],
     ["ligue-1", "Ligue 1", "France"], ["eredivisie", "Eredivisie", "Netherlands"], ["primeira-liga", "Primeira Liga", "Portugal"], ["belgian-pro-league", "Belgian Pro League", "Belgium"],

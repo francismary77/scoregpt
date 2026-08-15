@@ -1,5 +1,6 @@
 import type { HistoricalDataset, HistoricalFixture } from "@/modules/football-data/historical";
 import type { ConfidenceLabel, PublishingTier, SelectedOutcome } from "../selective-publishing";
+import type { EvaluationCohort } from "../evaluation-cohorts";
 
 export const SHADOW_VERSIONS = Object.freeze({ methodologyKey: "historical-v1", methodologyVersion: "historical-v1-frozen-4h", confidenceVersion: "compact-composite-4h9", publishingPolicyVersion: "selective-publishing-4h14" });
 export type ShadowSkipReason = "PIPELINE_DISABLED" | "UNSUPPORTED_COMPETITION" | "INVALID_FIXTURE" | "FIXTURE_ALREADY_STARTED" | "FIXTURE_TOO_CLOSE_TO_KICKOFF" | "FIXTURE_CANCELLED" | "MISSING_KICKOFF" | "UNRESOLVED_TEAM" | "INSUFFICIENT_HISTORY" | "INVALID_PROBABILITIES" | "FUTURE_EVIDENCE" | "DUPLICATE_PREDICTION" | "PROVIDER_REFRESH_DISABLED";
@@ -12,9 +13,10 @@ export interface ShadowPipelineOptions { now: string; dryRun?: boolean; persist?
 export interface ShadowFixtureSource { dataset: HistoricalDataset; upcomingFixtures: HistoricalFixture[]; supportedCompetition: SupportedShadowCompetition }
 export interface ShadowPredictionRecord {
   id: string; runId: string; fixtureId: string; providerFixtureId: string; competitionId: string; providerCompetitionId: string; season: string; homeTeamId: string; awayTeamId: string;
-  kickoffAt: string; predictionCreatedAt: string; evidenceCutoffAt: string; selectedOutcome: SelectedOutcome; homeProbability: number; drawProbability: number; awayProbability: number;
+  kickoffAt: string; predictionCreatedAt: string; evidenceCutoffAt: string; predictionMarket?: "MATCH_OUTCOME_1X2"; selectedOutcome: SelectedOutcome; homeProbability: number; drawProbability: number; awayProbability: number;
   methodologyKey: string; methodologyVersion: string; confidenceVersion: string; confidenceScoreInternal: number; confidenceLabel: ConfidenceLabel;
   publishingTierCalculated: PublishingTier; publishingPolicyVersion: string; rankingScope: "DAILY_GLOBAL"; rankingDate: string; rankingPosition: number | null; eligiblePopulationSize: number;
+  evaluationRank: number; evaluationPopulationSize: number; evaluationPercentile: number; evaluationCohort: EvaluationCohort;
   isTopPickCalculated: boolean; operationalPublicationState: ShadowOperationalState; shadowMode: true; settlementStatus: SettlementStatus;
   actualHomeGoals: number | null; actualAwayGoals: number | null; actualOutcome: SelectedOutcome | null; predictionCorrect: boolean | null; settledAt: string | null;
   methodologySnapshot: { methodology: string; confidence: string; publishingPolicy: string }; createdAt: string; updatedAt: string;
