@@ -45,8 +45,9 @@ test("migrations enforce atomic database-authoritative access and block unpublis
 test("consumer data path has no persisted-mode demo substitution or historical performance", async () => {
   const [service, repository] = await Promise.all([read("modules/football-experience/service.ts"), read("modules/football-experience/repository.ts")]);
   assert.match(repository, /list_consumer_prediction_catalog/);
-  assert.match(repository, /fixtureIds\.length \? this\.client\.from\("fixtures"\)/);
-  assert.match(repository, /\.in\("id", fixtureIds\)\.eq\("is_demo", false\)/);
+  assert.match(repository, /competitionIds\.length \? this\.client\.from\("fixtures"\)/);
+  assert.match(repository, /\.in\("competition_id", competitionIds\)\.eq\("is_demo", false\)/);
+  assert.doesNotMatch(service, /catalogFixtureIds\.has/);
   assert.match(repository, /consumer_publication_state/);
   assert.match(service, /forwardFixtureIds/);
   assert.match(service, /source: "persisted", degraded: false/);

@@ -19,15 +19,17 @@ export class SupabaseFootballExperienceRepository implements FootballExperienceR
     if (catalog.error) throw new Error("Football data is temporarily unavailable.");
     const catalogRows = catalog.data ?? [], fixtureIds = [...new Set(catalogRows.map((item) => item.fixture_id))];
     const empty = <T,>() => Promise.resolve({ data: [] as T[], error: null });
-    const [competitions, teams, fixtures, reports, markets, snapshots] = await Promise.all([
-      this.client.from("competitions").select("*").eq("enabled", true).order("priority").limit(30),
+    const competitions = await this.client.from("competitions").select("*").eq("enabled", true).order("priority").limit(30);
+    if (competitions.error) throw new Error("Football data is temporarily unavailable.");
+    const competitionIds = (competitions.data ?? []).map((item) => item.id);
+    const [teams, fixtures, reports, markets, snapshots] = await Promise.all([
       this.client.from("teams").select("*").limit(200),
-      fixtureIds.length ? this.client.from("fixtures").select("*").in("id", fixtureIds).eq("is_demo", false).order("kickoff_at") : empty<Database["public"]["Tables"]["fixtures"]["Row"]>(),
+      competitionIds.length ? this.client.from("fixtures").select("*").in("competition_id", competitionIds).eq("is_demo", false).order("kickoff_at").limit(3000) : empty<Database["public"]["Tables"]["fixtures"]["Row"]>(),
       fixtureIds.length ? this.client.from("intelligence_reports").select("*").in("fixture_id", fixtureIds).eq("status", "published").eq("consumer_publication_state", "PUBLISHED").eq("is_demo", false).order("generated_at", { ascending: false }) : empty<Database["public"]["Tables"]["intelligence_reports"]["Row"]>(),
       fixtureIds.length ? this.client.from("prediction_markets").select("*").order("sort_order").limit(100) : empty<Database["public"]["Tables"]["prediction_markets"]["Row"]>(),
       fixtureIds.length ? this.client.from("football_data_snapshots").select("id,fixture_id,data_type,payload,is_demo").in("fixture_id", fixtureIds).limit(200) : empty<PersistedFootballRows["snapshots"][number]>(),
     ]);
-    const responses = [competitions, teams, fixtures, reports, markets, snapshots];
+    const responses = [teams, fixtures, reports, markets, snapshots];
     const failed = responses.find((response) => response.error);
     if (failed?.error) throw new Error("Football data is temporarily unavailable.");
     return { competitions: competitions.data ?? [], teams: teams.data ?? [], fixtures: fixtures.data ?? [], reports: reports.data ?? [], markets: markets.data ?? [], snapshots: snapshots.data ?? [], catalog: catalogRows };
