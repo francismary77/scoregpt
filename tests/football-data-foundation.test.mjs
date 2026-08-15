@@ -19,7 +19,7 @@ test("live football ingestion defaults off and documents a server-only key place
   assert.match(env, /^FOOTBALL_DATA_PROVIDER=disabled$/m);
   assert.match(env, /^FOOTBALL_DATA_PROVIDER_ENABLED=false$/m);
   assert.match(env, /^FOOTBALL_API_KEY=$/m);
-  assert.match(env, /^FOOTBALL_API_DAILY_REQUEST_BUDGET=30$/m);
+  assert.match(env, /^FOOTBALL_API_DAILY_REQUEST_BUDGET=6500$/m);
   assert.match(env, /^FOOTBALL_INGESTION_DRY_RUN=true$/m);
   assert.doesNotMatch(env, /^NEXT_PUBLIC_.*FOOTBALL.*(?:KEY|TOKEN|SECRET)/im);
 });
