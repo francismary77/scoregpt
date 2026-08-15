@@ -10,7 +10,8 @@ const provider = (factory = payload) => ({ name: "api-football", async fetchComp
 
 test("historical targets use isolated verified league-season identities", () => {
   assert.equal(new Set(historicalLeagueTargets.map((item) => `${item.providerId}:${item.season}`)).size, historicalLeagueTargets.length);
-  assert.ok(historicalLeagueTargets.every((item) => item.season === "2024" && item.type === "League"));
+  assert.ok(historicalLeagueTargets.every((item) => item.season === "2025" && item.type === "League"));
+  assert.equal(historicalLeagueTargets.length, 7);
 });
 
 test("multi-league bulk ingestion is isolated and audited", async () => {

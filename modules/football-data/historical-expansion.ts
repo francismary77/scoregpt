@@ -5,11 +5,13 @@ import { safeProviderErrorDetails } from "./api-football-provider";
 
 export interface HistoricalLeagueTarget { id: string; providerId: string; providerName: string; country: string; type: "League"; season: string; verifiedSeasonStart?: string; verifiedSeasonEnd?: string; metadataRequestRequired: boolean }
 export const historicalLeagueTargets: readonly HistoricalLeagueTarget[] = [
-  { id: "premier-league", providerId: "39", providerName: "Premier League", country: "England", type: "League", season: "2024", metadataRequestRequired: true },
-  { id: "la-liga", providerId: "140", providerName: "La Liga", country: "Spain", type: "League", season: "2024", metadataRequestRequired: true },
-  { id: "serie-a", providerId: "135", providerName: "Serie A", country: "Italy", type: "League", season: "2024", metadataRequestRequired: true },
-  { id: "bundesliga", providerId: "78", providerName: "Bundesliga", country: "Germany", type: "League", season: "2024", metadataRequestRequired: true },
-  { id: "ligue-1", providerId: "61", providerName: "Ligue 1", country: "France", type: "League", season: "2024", verifiedSeasonStart: "2024-08-16", verifiedSeasonEnd: "2025-05-29", metadataRequestRequired: false },
+  { id: "premier-league", providerId: "39", providerName: "Premier League", country: "England", type: "League", season: "2025", metadataRequestRequired: false },
+  { id: "la-liga", providerId: "140", providerName: "La Liga", country: "Spain", type: "League", season: "2025", metadataRequestRequired: false },
+  { id: "serie-a", providerId: "135", providerName: "Serie A", country: "Italy", type: "League", season: "2025", metadataRequestRequired: false },
+  { id: "bundesliga", providerId: "78", providerName: "Bundesliga", country: "Germany", type: "League", season: "2025", metadataRequestRequired: false },
+  { id: "ligue-1", providerId: "61", providerName: "Ligue 1", country: "France", type: "League", season: "2025", metadataRequestRequired: false },
+  { id: "turkish-super-lig", providerId: "203", providerName: "Süper Lig", country: "Turkey", type: "League", season: "2025", metadataRequestRequired: false },
+  { id: "scottish-premiership", providerId: "179", providerName: "Premiership", country: "Scotland", type: "League", season: "2025", metadataRequestRequired: false },
 ] as const;
 
 const dayStart = (now: Date) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();

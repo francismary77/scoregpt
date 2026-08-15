@@ -1,6 +1,6 @@
 export interface HistoricalCompetition { id: string; providerId: string; name: string; country: string | null; season: string }
 export interface HistoricalTeam { id: string; providerId: string; name: string }
-export interface HistoricalFixture { id: string; providerFixtureId: string; kickoffAt: string; status: string; homeTeamId: string; awayTeamId: string; homeScore: number | null; awayScore: number | null; round?: string | null }
+export interface HistoricalFixture { id: string; providerFixtureId: string; kickoffAt: string; status: string; homeTeamId: string; awayTeamId: string; homeScore: number | null; awayScore: number | null; round?: string | null; evidence?: { competitionId: string; providerCompetitionId: string; competitionName: string; season: string; source: "current-season" | "previous-season" } }
 export interface HistoricalDataset { competition?: HistoricalCompetition; teams: HistoricalTeam[]; fixtures: HistoricalFixture[] }
 export interface HistoricalSplit { played: number; wins: number; draws: number; losses: number; goalsFor: number; goalsAgainst: number; points: number }
 export interface RateCount { count: number; rate: number | null }

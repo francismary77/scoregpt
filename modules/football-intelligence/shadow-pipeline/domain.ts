@@ -2,7 +2,7 @@ import type { HistoricalDataset, HistoricalFixture } from "@/modules/football-da
 import type { ConfidenceLabel, PublishingTier, SelectedOutcome } from "../selective-publishing";
 import type { EvaluationCohort } from "../evaluation-cohorts";
 
-export const SHADOW_VERSIONS = Object.freeze({ methodologyKey: "historical-v1", methodologyVersion: "historical-v1-frozen-4h", confidenceVersion: "compact-composite-4h9", publishingPolicyVersion: "selective-publishing-4h14" });
+export const SHADOW_VERSIONS = Object.freeze({ methodologyKey: "historical-v1", methodologyVersion: "historical-v1-season-bridge-p8b16c", confidenceVersion: "compact-composite-4h9", publishingPolicyVersion: "selective-publishing-4h14" });
 export type ShadowSkipReason = "PIPELINE_DISABLED" | "UNSUPPORTED_COMPETITION" | "INVALID_FIXTURE" | "FIXTURE_ALREADY_STARTED" | "FIXTURE_TOO_CLOSE_TO_KICKOFF" | "FIXTURE_CANCELLED" | "MISSING_KICKOFF" | "UNRESOLVED_TEAM" | "INSUFFICIENT_HISTORY" | "INVALID_PROBABILITIES" | "FUTURE_EVIDENCE" | "DUPLICATE_PREDICTION" | "PROVIDER_REFRESH_DISABLED";
 export type SettlementStatus = "PENDING" | "SETTLED" | "VOID" | "CANCELLED" | "POSTPONED" | "ABANDONED" | "UNKNOWN_FINAL_STATE";
 export type ShadowOperationalState = "SHADOW_ONLY" | "SUPPRESSED";
@@ -19,7 +19,7 @@ export interface ShadowPredictionRecord {
   evaluationRank: number; evaluationPopulationSize: number; evaluationPercentile: number; evaluationCohort: EvaluationCohort;
   isTopPickCalculated: boolean; operationalPublicationState: ShadowOperationalState; shadowMode: true; settlementStatus: SettlementStatus;
   actualHomeGoals: number | null; actualAwayGoals: number | null; actualOutcome: SelectedOutcome | null; predictionCorrect: boolean | null; settledAt: string | null;
-  methodologySnapshot: { methodology: string; confidence: string; publishingPolicy: string }; createdAt: string; updatedAt: string;
+  methodologySnapshot: { methodology: string; confidence: string; publishingPolicy: string; evidence?: { minimumPerTeam: number; weighting: "current-season-first-recency-selection"; home: { currentSeason: number; previousSeason: number; fixtureIds: string[] }; away: { currentSeason: number; previousSeason: number; fixtureIds: string[] } } }; createdAt: string; updatedAt: string;
 }
 export interface ShadowRunRecord { id: string; startedAt: string; completedAt: string; mode: "DRY_RUN" | "SHADOW_PERSIST"; sourceType: "PERSISTED_DATABASE" | "PERSISTED_DATABASE_WITH_PROVIDER_REFRESH"; operationalStatus: "COMPLETED" | "PARTIAL" | "FAILED"; horizonStart: string; horizonEnd: string; fixturesFound: number; fixturesEligible: number; predictionsCreated: number; predictionsPersisted: number; predictionsReused: number; predictionsSkipped: number; topPicksCalculated: number; providerRequests: number; errorsCount: number; methodologyVersion: string; confidenceVersion: string; policyVersion: string; failureSummary: string | null }
 export interface ShadowSkip { fixtureId: string | null; reason: ShadowSkipReason; detail?: string }

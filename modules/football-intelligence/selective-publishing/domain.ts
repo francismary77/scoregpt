@@ -9,7 +9,7 @@ export type SelectedOutcome = "home" | "draw" | "away";
 export interface SelectivePublishingInput {
   fixtureId: string; competitionId: string; season: string; kickoffAt: string; methodology: string;
   selectedOutcome: SelectedOutcome; probabilities: ProbabilityTriple; confidenceScore: number | null;
-  evidence: { homeHistory: number; awayHistory: number; latestEvidenceAt: string | null };
+  evidence: { homeHistory: number; awayHistory: number; latestEvidenceAt: string | null; provenance?: { minimumPerTeam: number; weighting: "current-season-first-recency-selection"; home: { currentSeason: number; previousSeason: number; fixtureIds: string[] }; away: { currentSeason: number; previousSeason: number; fixtureIds: string[] } } };
 }
 export interface EligibilityCheck { code: string; passed: boolean }
 export interface PublishingControls { publishingEnabled: boolean; topPicksEnabled: boolean; globalPause: boolean; suppressedFixtureIds: ReadonlySet<string> }
