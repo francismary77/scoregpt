@@ -61,9 +61,12 @@ test("consumer fixture and result filters render the same configured competition
   assert.doesNotMatch(matches, /competitions\.filter\(item=>item\.fixtureCount/);
 });
 
-test("membership display loads membership and the persisted allowance without a duplicate entitlement lookup", async () => {
-  const memberPages = await read("components/member-pages.tsx");
-  assert.match(memberPages, /membershipService\.getDisplay\(user\.id\)/);
-  assert.match(memberPages, /accountRepositories\.predictionUsage\.getRemainingAllowance\(user\.id,entitlementConfig\.freePredictionAllowance\)/);
-  assert.doesNotMatch(memberPages, /predictionEntitlementService\.decide\(user,"registered"\)/);
+test("membership display receives one authoritative server entitlement and only Free users load allowance", async () => {
+  const [memberPages, dashboard, account] = await Promise.all([read("components/member-pages.tsx"), read("app/dashboard/page.tsx"), read("app/account/page.tsx")]);
+  assert.match(memberPages, /state:\s*MembershipState/);
+  assert.match(dashboard, /resolveConsumerMembership\(user\.id\)/);
+  assert.match(dashboard, /membership\.hasPremiumAccess\?null:/);
+  assert.match(account, /membershipFromSubscription\(billing\.subscription\)/);
+  assert.match(account, /membership\.hasPremiumAccess \? null :/);
+  assert.doesNotMatch(memberPages, /membershipService|getRemainingAllowance|predictionEntitlementService/);
 });

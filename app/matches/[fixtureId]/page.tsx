@@ -12,6 +12,8 @@ import { createServerPersistenceRepositories } from "@/modules/persistence/serve
 import { entitlementConfig } from "@/config/application";
 import { getSiteUrl } from "@/config/site";
 import { unlockStoredReport } from "./actions";
+import { resolveConsumerMembership } from "@/modules/account/membership-resolver";
+import { createPrivilegedFootballExperienceService } from "@/modules/football-experience/privileged";
 
 export async function generateMetadata({ params }: { params: Promise<{ fixtureId: string }> }): Promise<Metadata> {
   const { fixtureId } = await params;
@@ -23,16 +25,15 @@ export async function generateMetadata({ params }: { params: Promise<{ fixtureId
 
 export default async function FixturePage({ params }: { params: Promise<{ fixtureId: string }> }) {
   const { fixtureId } = await params;
-  const detail = await (await createFootballExperienceService()).getFixture(fixtureId);
+  const user = await getServerUser();
+  const membership = user ? await resolveConsumerMembership(user.id) : null;
+  const detail = await (membership?.hasPremiumAccess ? createPrivilegedFootballExperienceService() : await createFootballExperienceService()).getFixture(fixtureId);
   if (!detail) notFound();
   const { fixture, report, markets, sections } = detail;
-  const user = await getServerUser();
   let reportAllowed = report?.accessLevel === "public", canUnlock = false, remaining: number | null = null;
   if (report && report.accessLevel !== "public" && user) {
     const repositories = await createServerPersistenceRepositories();
-    const membership = await repositories.membership.getMembershipForUser(user.id);
-    const premium = membership.tier === "premium" && membership.status === "active";
-    if (premium) reportAllowed = true;
+    if (membership?.hasPremiumAccess) reportAllowed = true;
     else if (report.accessLevel === "registered") {
       const usage = await repositories.predictionUsage.getUsageForUser(user.id);
       const viewed = usage.viewedFixtureIds.includes(fixture.id);
