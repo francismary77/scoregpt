@@ -14,7 +14,7 @@ test("persisted entitlement uses canonical internal fixture UUIDs end to end", a
   assert.match(repository, /const viewedFixtureIds = \[\.\.\.new Set\(\(data \?\? \[\]\)\.flatMap\(\(row\) => row\.fixture_id/);
   assert.doesNotMatch(repository, /labels\.get\(id\)/);
   assert.doesNotMatch(repository, /provider_fixture_id\)\.in\("id", ids\)/);
-  assert.match(fixturePage, /usage\.viewedFixtureIds\.includes\(fixture\.id\)/);
+  assert.match(fixturePage, /usage\.viewedFixtureIds\.includes\(detail\.fixture\.id\)/);
   assert.match(action, /unlockPrediction\(user\.id, fixtureId\)/);
 });
 

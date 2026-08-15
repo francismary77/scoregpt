@@ -7,5 +7,5 @@ export interface PredictionUsage{userId:string;viewedFixtureIds:string[];used:nu
 export interface PredictionUnlockResult{reportId:string;alreadyUnlocked:boolean;remaining:number}
 export interface UserSession{id:string;userId:string;createdAt:string;mode:"mock"|"supabase"}
 export type AuthState={status:"checking"}|{status:"guest"}|{status:"confirmation-required";email:string}|{status:"authenticated";user:User;session:UserSession};
-export interface PredictionAccessDecision{allowed:boolean;tier:"guest"|MembershipTier;remaining:number|null;reason:"public"|"authentication-required"|"free-allowance"|"allowance-exhausted"|"premium-access"|"premium-required";requiresAuthentication:boolean;requiresUpgrade:boolean}
+export interface PredictionAccessDecision{allowed:boolean;tier:"guest"|MembershipTier;remaining:number|null;reason:"public"|"authentication-required"|"free-allowance"|"previously-unlocked"|"allowance-exhausted"|"premium-access"|"premium-required";requiresAuthentication:boolean;requiresUpgrade:boolean}
 export interface MembershipDisplay{tier:MembershipTier;status:MembershipStatus;label:string;hasPremiumAccess:boolean}

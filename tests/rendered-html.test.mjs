@@ -30,7 +30,7 @@ test("Batch 2D auth and membership boundaries remain provider-neutral and demo-s
   assert.match(repositories, /MembershipRepository/); assert.match(repositories, /PredictionUsageRepository/);
   assert.match(services, /allowance-exhausted/); assert.match(services, /premium-access/); assert.match(services, /authentication-required/);
   assert.match(config, /freePredictionAllowance:\s*3/); assert.match(config, /allowancePeriod:\s*"lifetime-welcome"/);
-  assert.match(validation, /Passwords do not match/); assert.match(validation, /Accept the Terms and Privacy Policy/); assert.match(gate, /recordView/);
+  assert.match(validation, /Passwords do not match/); assert.match(validation, /Accept the Terms and Privacy Policy/); assert.match(gate, /\.unlock\(user,fixtureId\)/);
 });
 
 test("Batch 2C keeps interactive filters in client islands and data composition in services", async () => {

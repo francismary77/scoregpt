@@ -40,9 +40,9 @@ test("Premium UI removes quota and repeat-purchase prompts while Free UI remains
   ]);
   assert.match(members, /Full Premium access/);
   assert.match(members, /!data\.membership\.hasPremiumAccess&&<Link href="\/pricing">Upgrade to Premium/);
-  assert.match(pricing, /Current plan/);
+  assert.match(pricing, /Premium member/);
   assert.match(pricing, /Manage subscription/);
-  assert.match(pricing, /premium\?<Link[\s\S]*ConsumerSubscriptionCta/);
+  assert.match(pricing, /!membership\.hasPremiumAccess&&[\s\S]*ConsumerSubscriptionCta/);
 });
 
 test("consumer initialization still rejects an existing current subscription before provider initialization", async () => {
