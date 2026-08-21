@@ -49,7 +49,8 @@ test("consumer data path has no persisted-mode demo substitution or historical p
   assert.match(repository, /\.in\("competition_id", competitionIds\)\.eq\("is_demo", false\)/);
   assert.doesNotMatch(service, /catalogFixtureIds\.has/);
   assert.match(repository, /consumer_publication_state/);
-  assert.match(service, /forwardFixtureIds/);
+  assert.match(repository, /list_published_prediction_results/);
+  assert.match(service, /rows\.predictionResults/);
   assert.match(service, /source: "persisted", degraded: false/);
   assert.match(service, /competitions: \[\], fixtures: \[\], results: \[\], reports: \[\]/);
   assert.doesNotMatch(service, /persisted\.results\.length\s*[<>]=?\s*\d[^;]+demo\.results/);

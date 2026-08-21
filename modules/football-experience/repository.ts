@@ -9,14 +9,18 @@ export interface PersistedFootballRows {
   markets: Database["public"]["Tables"]["prediction_markets"]["Row"][];
   snapshots: Array<{ id: string; fixture_id: string; data_type: string; payload: Json; is_demo: boolean }>;
   catalog: Array<{ report_id: string; fixture_id: string; access_level: "public" | "registered" | "premium" }>;
+  predictionResults: Array<{ report_id:string; fixture_id:string; selected_outcome:"home"|"draw"|"away"; prediction_market:"MATCH_OUTCOME_1X2"; settlement_status:"PENDING"|"SETTLED"|"VOID"|"CANCELLED"|"POSTPONED"|"ABANDONED"|"UNKNOWN_FINAL_STATE"; actual_home_goals:number|null; actual_away_goals:number|null; prediction_correct:boolean|null }>;
 }
 export interface FootballExperienceRepository { read(): Promise<PersistedFootballRows> }
 
 export class SupabaseFootballExperienceRepository implements FootballExperienceRepository {
   constructor(private readonly client: SupabaseClient<Database>) {}
   async read(): Promise<PersistedFootballRows> {
-    const catalog = await this.client.rpc("list_consumer_prediction_catalog");
-    if (catalog.error) throw new Error("Football data is temporarily unavailable.");
+    const [catalog,predictionResults]=await Promise.all([
+      this.client.rpc("list_consumer_prediction_catalog"),
+      this.client.rpc("list_published_prediction_results"),
+    ]);
+    if (catalog.error||predictionResults.error) throw new Error("Football data is temporarily unavailable.");
     const catalogRows = catalog.data ?? [], fixtureIds = [...new Set(catalogRows.map((item) => item.fixture_id))];
     const empty = <T,>() => Promise.resolve({ data: [] as T[], error: null });
     const competitions = await this.client.from("competitions").select("*").eq("enabled", true).order("priority").limit(30);
@@ -32,6 +36,6 @@ export class SupabaseFootballExperienceRepository implements FootballExperienceR
     const responses = [teams, fixtures, reports, markets, snapshots];
     const failed = responses.find((response) => response.error);
     if (failed?.error) throw new Error("Football data is temporarily unavailable.");
-    return { competitions: competitions.data ?? [], teams: teams.data ?? [], fixtures: fixtures.data ?? [], reports: reports.data ?? [], markets: markets.data ?? [], snapshots: snapshots.data ?? [], catalog: catalogRows };
+    return { competitions: competitions.data ?? [], teams: teams.data ?? [], fixtures: fixtures.data ?? [], reports: reports.data ?? [], markets: markets.data ?? [], snapshots: snapshots.data ?? [], catalog: catalogRows, predictionResults:predictionResults.data??[] };
   }
 }

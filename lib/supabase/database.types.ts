@@ -43,6 +43,7 @@ export type Database = {
       list_consumer_prediction_catalog: { Args: Record<string, never>; Returns: Array<{ report_id: string; fixture_id: string; access_level: "public" | "registered" | "premium" }> };
       unlock_consumer_prediction: { Args: { p_fixture_id: string }; Returns: Array<{ report_id: string; already_unlocked: boolean; remaining: number }> };
       prepare_consumer_prediction: { Args: { p_forward_prediction_id: string; p_access_level?: "public" | "registered" | "premium" }; Returns: string };
+      list_published_prediction_results: { Args: Record<string,never>; Returns: Array<{ report_id:string;fixture_id:string;selected_outcome:"home"|"draw"|"away";prediction_market:"MATCH_OUTCOME_1X2";settlement_status:"PENDING"|"SETTLED"|"VOID"|"CANCELLED"|"POSTPONED"|"ABANDONED"|"UNKNOWN_FINAL_STATE";actual_home_goals:number|null;actual_away_goals:number|null;prediction_correct:boolean|null }> };
       transition_consumer_prediction: { Args: { p_report_id: string; p_target_state: "NOT_PUBLISHED" | "READY_FOR_REVIEW" | "PUBLISHED" | "WITHDRAWN" }; Returns: string };
       confirm_business_setup_payment: { Args: { p_order_id:string;p_transaction_id:string;p_reference:string;p_amount_minor:number;p_environment:"test"|"live" }; Returns:string };
       confirm_manual_business_setup_payment:{Args:{p_order_id:string;p_admin_user_id:string;p_amount_minor:number;p_payment_reference:string;p_audit_note?:string|null;p_environment?:"test"|"live"|null};Returns:string};

@@ -23,7 +23,9 @@ export function normalizeMatchStatus(value: string): MatchStatus {
   if (["live", "1h", "2h", "ht", "et", "p"].includes(status)) return "live";
   if (["finished", "ft", "aet", "pen"].includes(status)) return "finished";
   if (["postponed", "pst"].includes(status)) return "postponed";
-  if (["cancelled", "canc", "abd", "awd", "wo"].includes(status)) return "cancelled";
+  if (["cancelled", "canc"].includes(status)) return "cancelled";
+  if (["abandoned","abd"].includes(status)) return "abandoned";
+  if (["void","awd","wo"].includes(status)) return "void";
   return "scheduled";
 }
 

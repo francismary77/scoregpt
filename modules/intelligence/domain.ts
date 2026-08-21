@@ -1,5 +1,5 @@
 export type DataSourceType = "mock" | "provider" | "internal";
-export type MatchStatus = "scheduled" | "live" | "finished" | "postponed" | "cancelled";
+export type MatchStatus = "scheduled" | "live" | "finished" | "postponed" | "cancelled" | "abandoned" | "void";
 export type PredictionStatus = "pending" | "won" | "lost" | "void";
 export type PredictionOutcome = "home" | "draw" | "away" | "over" | "under" | "both-teams-score" | "double-chance";
 export type RiskLevel = "low" | "medium" | "high";
@@ -31,4 +31,4 @@ export function confidenceScore(value: number): ConfidenceScore {
 
 export function isRiskLevel(value: string): value is RiskLevel { return ["low", "medium", "high"].includes(value); }
 export function isPredictionStatus(value: string): value is PredictionStatus { return ["pending", "won", "lost", "void"].includes(value); }
-export function isMatchStatus(value: string): value is MatchStatus { return ["scheduled", "live", "finished", "postponed", "cancelled"].includes(value); }
+export function isMatchStatus(value: string): value is MatchStatus { return ["scheduled", "live", "finished", "postponed", "cancelled", "abandoned", "void"].includes(value); }

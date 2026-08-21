@@ -11,8 +11,7 @@ function mapRows(rows: PersistedFootballRows): FootballExperienceData {
   const fixtureMap = new Map(fixtures.map((item) => [item.id, item]));
   const visibleByFixture = new Map(rows.reports.map((item) => [item.fixture_id, item]));
   const reports: IntelligenceReportSummary[] = rows.catalog.flatMap((catalogItem) => { const fixture = fixtureMap.get(catalogItem.fixture_id); if (!fixture) return []; const item = visibleByFixture.get(catalogItem.fixture_id); return [{ id: catalogItem.report_id, fixture, headline: item ? `${fixture.homeTeam.name} vs ${fixture.awayTeam.name} intelligence` : "Protected match intelligence", excerpt: item ? item.reasoning ?? excerpt(item.analysis) : null, confidence: item?.confidence ?? null, riskLevel: item?.risk_level ?? null, recommendedMarket: item?.recommended_market ?? null, analysis: item?.analysis ?? null, accessLevel: catalogItem.access_level, published: true, forwardPrediction: Boolean(item?.forward_prediction_id), provenance: "persisted" }]; });
-  const forwardFixtureIds = new Set(reports.filter((item) => item.forwardPrediction).map((item) => item.fixture.id));
-  const results = fixtures.filter((item) => forwardFixtureIds.has(item.id) && (item.status === "finished" || item.status === "cancelled")).map((fixture) => ({ fixture, date: fixture.kickoffAt, status: fixture.status, provenance: fixture.provenance }));
+  const results = rows.predictionResults.flatMap((row) => {const fixture=fixtureMap.get(row.fixture_id);if(!fixture)return[];const prediction=row.selected_outcome==="home"?fixture.homeTeam.name:row.selected_outcome==="away"?fixture.awayTeam.name:"Draw";return [{fixture,date:fixture.kickoffAt,status:fixture.status,provenance:fixture.provenance,prediction,market:row.prediction_market,settlementStatus:row.settlement_status,predictionCorrect:row.prediction_correct}]});
   return { competitions, fixtures, results, reports, source: "persisted", degraded: false };
 }
 
