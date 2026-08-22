@@ -1,7 +1,8 @@
 import type { FootballCompetitionConfig } from "@/config/football-data";
 import type { FootballDataProvider } from "@/modules/intelligence/providers";
 import { expiresAtFor } from "./freshness";
-import type { IngestionResult, NormalizedSnapshot, ProviderQuotaStatus, RefreshReason, StoredSnapshot } from "./domain";
+import type { IngestionResult, NormalizedSnapshot, ProviderQuotaStatus, RefreshReason, SnapshotRefreshDiagnostic, StoredSnapshot } from "./domain";
+import { safeProviderErrorDetails } from "./api-football-provider";
 import type { FootballIngestionRepository, ProviderRequestRepository } from "./repositories";
 
 export class FootballDataIngestionService {
@@ -59,42 +60,33 @@ export class FootballDataIngestionService {
     return results;
   }
 
-  async getSnapshot(fixtureId: string, providerFixtureId: string, category: NormalizedSnapshot["category"], reason: RefreshReason = "manual"): Promise<StoredSnapshot | null> {
+async getSnapshot(fixtureId: string, providerFixtureId: string, category: NormalizedSnapshot["category"], reason: RefreshReason = "manual", onDiagnostic?: (diagnostic: SnapshotRefreshDiagnostic) => void): Promise<StoredSnapshot | null> {
     let cached: StoredSnapshot | null = null;
-    try {
-      cached = await this.repository.getSnapshot(fixtureId, category, this.provider.name);
-    } catch {
-      if (!this.provider.enabled) return null;
-    }
-    if (cached?.provenance.cacheState === "fresh") {
-      await this.record(category, "fixture-snapshot", true, "fresh", reason, null);
-      return cached;
-    }
+    try { cached = await this.repository.getSnapshot(fixtureId, category, this.provider.name); } catch { if (!this.provider.enabled) return null; }
+    if (cached?.provenance.cacheState === "fresh") { await this.record(category, "fixture-snapshot", true, "fresh", reason, null); onDiagnostic?.({ fixtureId, providerFixtureId, category, status: "CACHE_HIT", requestCount: 0, errorCategory: null, errorCode: null, errorMessage: null, httpStatus: null, providerIdentity: null }); return cached; }
     const estimatedRequests = this.provider.estimateFixtureRequests?.([category]) ?? 1;
-    if (!this.provider.enabled || !(await this.hasBudget(estimatedRequests))) return cached;
-    const refreshKey = `${this.provider.name}:${fixtureId}:${category}`;
-    const inFlight = this.refreshes.get(refreshKey);
+    if (!this.provider.enabled || !(await this.hasBudget(estimatedRequests))) { onDiagnostic?.({ fixtureId, providerFixtureId, category, status: "BUDGET_SKIPPED", requestCount: 0, errorCategory: null, errorCode: null, errorMessage: null, httpStatus: null, providerIdentity: null }); return cached; }
+    const refreshKey = `${this.provider.name}:${fixtureId}:${category}`, inFlight = this.refreshes.get(refreshKey);
     if (inFlight) return inFlight;
-    const refresh = this.refreshSnapshot(fixtureId, providerFixtureId, category, reason, cached)
-      .finally(() => this.refreshes.delete(refreshKey));
-    this.refreshes.set(refreshKey, refresh);
-    return refresh;
+    const refresh = this.refreshSnapshot(fixtureId, providerFixtureId, category, reason, cached, onDiagnostic).finally(() => this.refreshes.delete(refreshKey));
+    this.refreshes.set(refreshKey, refresh); return refresh;
   }
 
-  private async refreshSnapshot(fixtureId: string, providerFixtureId: string, category: NormalizedSnapshot["category"], reason: RefreshReason, cached: StoredSnapshot | null): Promise<StoredSnapshot | null> {
+  private async refreshSnapshot(fixtureId: string, providerFixtureId: string, category: NormalizedSnapshot["category"], reason: RefreshReason, cached: StoredSnapshot | null, onDiagnostic?: (diagnostic: SnapshotRefreshDiagnostic) => void): Promise<StoredSnapshot | null> {
+    let phase: "provider" | "persistence" = "provider";
     try {
-      const refreshed = await this.provider.fetchFixtureData(providerFixtureId, [category]);
-      const snapshot = refreshed.snapshots.find((item) => item.category === category);
-      if (!snapshot) return cached;
+      const refreshed = await this.provider.fetchFixtureData(providerFixtureId, [category]), snapshot = refreshed.snapshots.find((item) => item.category === category);
+      if (!snapshot) { await this.record(category, "fixture-snapshot", true, cached ? "stale" : "missing", reason, "NO_DATA_AVAILABLE", refreshed.requestCount ?? 1); onDiagnostic?.({ fixtureId, providerFixtureId, category, status: "EMPTY", requestCount: refreshed.requestCount ?? 1, errorCategory: null, errorCode: "NO_DATA_AVAILABLE", errorMessage: "Provider returned no usable data for this category.", httpStatus: 200, providerIdentity: refreshed.providerIdentity ?? null }); return cached; }
+      phase = "persistence";
       const expiresAt = expiresAtFor(category, refreshed.fixture.status, refreshed.fixture.kickoffAt, snapshot.fetchedAt);
       await this.repository.upsertSnapshot(this.provider.name, snapshot, fixtureId, expiresAt);
       await this.record(category, "fixture-snapshot", true, cached ? "stale" : "missing", cached ? "stale" : "missing", null, refreshed.requestCount ?? 1);
-      return this.repository.getSnapshot(fixtureId, category, this.provider.name);
+      const persisted = await this.repository.getSnapshot(fixtureId, category, this.provider.name);
+      onDiagnostic?.({ fixtureId, providerFixtureId, category, status: "PERSISTED", requestCount: refreshed.requestCount ?? 1, errorCategory: null, errorCode: null, errorMessage: null, httpStatus: 200, providerIdentity: refreshed.providerIdentity ?? null }); return persisted;
     } catch (error) {
-      const requestCount = typeof error === "object" && error && "requestCount" in error && typeof error.requestCount === "number" ? error.requestCount : error instanceof Error && error.name === "MissingFootballProviderKeyError" ? 0 : 1;
-      const errorCode = typeof error === "object" && error && "providerCode" in error && typeof error.providerCode === "string" ? error.providerCode : error instanceof Error ? error.name : "ProviderError";
+      const requestCount = typeof error === "object" && error && "requestCount" in error && typeof error.requestCount === "number" ? error.requestCount : error instanceof Error && error.name === "MissingFootballProviderKeyError" ? 0 : 1, safe = safeProviderErrorDetails(error), errorCode = phase === "persistence" ? "snapshot_persistence_failed" : safe.code;
       await this.record(category, "fixture-snapshot", false, cached ? "stale" : "missing", reason, errorCode, requestCount);
-      return cached;
+      onDiagnostic?.({ fixtureId, providerFixtureId, category, status: phase === "persistence" ? "PERSISTENCE_ERROR" : "PROVIDER_ERROR", requestCount, errorCategory: phase === "persistence" ? "persistence" : safe.category, errorCode, errorMessage: phase === "persistence" ? "Snapshot persistence failed." : safe.message, httpStatus: safe.httpStatus, providerIdentity: typeof error === "object" && error && "providerIdentity" in error ? error.providerIdentity as SnapshotRefreshDiagnostic["providerIdentity"] : null }); return cached;
     }
   }
 }

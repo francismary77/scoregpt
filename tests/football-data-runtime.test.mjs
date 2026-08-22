@@ -121,3 +121,19 @@ test("concurrent stale reads share one provider refresh", async () => {
   assert.ok(first && second);
   assert.equal(calls, 1);
 });
+test("successful empty enrichment is audited separately from persistence", async () => {
+  const repository = new MemoryFootballIngestionRepository(), requests = new MemoryProviderRequestRepository();
+  await repository.ingestBundle("test-provider", { competition, teams, fixtures: [fixture], snapshots: [], fetchedAt });
+  const fixtureId = [...repository.fixtures.values()][0].id, diagnostics = [];
+  const provider = {
+    name: "test-provider", enabled: true, estimateFixtureRequests: () => 2,
+    async fetchFixtureData() { return { fixture, snapshots: [], fetchedAt, requestCount: 2, providerIdentity: { fixtureId: fixture.providerId, leagueId: fixture.competitionProviderId, season: "2026", homeTeamId: fixture.homeTeamProviderId, awayTeamId: fixture.awayTeamProviderId } }; },
+    async fetchCompetitionData() { throw new Error("unused"); },
+    async getFixtures() { return []; }, async getFixture() { return null; }, async getTeamForm(teamId) { return { teamId, sequence: [], summary: "" }; }, async getCompetition() { return null; }, async getResult() { return null; },
+  };
+  const service = new FootballDataIngestionService(provider, repository, requests, footballCompetitions, 100, () => new Date("2026-08-10T11:00:00.000Z"));
+  assert.equal(await service.getSnapshot(fixtureId, fixture.providerId, "h2h", "scheduled", item => diagnostics.push(item)), null);
+  assert.deepEqual([diagnostics[0].status, diagnostics[0].requestCount, diagnostics[0].errorCode], ["EMPTY", 2, "NO_DATA_AVAILABLE"]);
+  assert.deepEqual([requests.records[0].succeeded, requests.records[0].requestCount, requests.records[0].errorCode], [true, 2, "NO_DATA_AVAILABLE"]);
+  assert.equal(repository.snapshots.size, 0);
+});

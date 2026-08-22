@@ -22,6 +22,7 @@ export class FootballProviderResponseError extends Error {
   providerCategory: "authentication" | "quota" | "subscription" | "invalid-request" | "invalid-season" | "provider-api" | "malformed-response";
   providerCode: string;
   safeDiagnostic: string;
+  providerIdentity: FixtureRefreshPayload["providerIdentity"] | null = null;
   constructor(message: string, requestCount = 1, httpStatus: number | null = null, providerCategory: FootballProviderResponseError["providerCategory"] = "provider-api", providerCode = "provider_api_error", safeDiagnostic = message) { super(message); this.name = "FootballProviderResponseError"; this.requestCount = requestCount; this.httpStatus = httpStatus; this.providerCategory = providerCategory; this.providerCode = providerCode; this.safeDiagnostic = safeDiagnostic; }
 }
 export class FootballProviderAuthenticationError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "Provider rejected the configured credential.") { super("Provider authentication failed.", 1, httpStatus, "authentication", "authentication_failed", diagnostic); this.name = "FootballProviderAuthenticationError"; } }
@@ -30,6 +31,7 @@ export class FootballProviderAccessError extends FootballProviderResponseError {
 export class FootballProviderInvalidRequestError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "Provider rejected one or more request parameters.") { super("Provider rejected the request parameters.", 1, httpStatus, "invalid-request", "invalid_request", diagnostic); this.name = "FootballProviderInvalidRequestError"; } }
 export class FootballProviderSeasonError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "The requested season is invalid or unavailable.") { super("Provider season is invalid or unavailable.", 1, httpStatus, "invalid-season", "invalid_or_unavailable_season", diagnostic); this.name = "FootballProviderSeasonError"; } }
 export class MalformedFootballProviderResponseError extends FootballProviderResponseError { constructor(httpStatus: number | null = null, diagnostic = "Provider returned an unexpected response structure.") { super("Provider returned a malformed response.", 1, httpStatus, "malformed-response", "malformed_response", diagnostic); this.name = "MalformedFootballProviderResponseError"; } }
+export class FootballProviderNormalizationError extends FootballProviderResponseError { constructor() { super("Provider response normalization failed.", 1, null, "malformed-response", "normalization_rejected", "Provider returned data that could not be normalized safely."); this.name = "FootballProviderNormalizationError"; } }
 export class EmptyFootballProviderResponseError extends FootballProviderResponseError { constructor() { super("Provider returned no records for required foundational data."); this.name = "EmptyFootballProviderResponseError"; } }
 
 export interface ApiFootballProviderOptions {
@@ -250,11 +252,11 @@ export class ApiFootballProvider implements FootballDataProvider {
 
   async fetchFixtureData(providerFixtureId: string, categories: readonly string[] = ["form", "h2h", "injuries", "lineups", "statistics", "odds"]): Promise<FixtureRefreshPayload> {
     normalizeProviderId(providerFixtureId);
-    let requestCount = 0;
+    let requestCount = 0, providerIdentity: FixtureRefreshPayload["providerIdentity"] | null = null;
     try {
       const fixtureRows = (requestCount++, await this.request("fixtures", { id: providerFixtureId }, true));
       if (!fixtureRows[0]) throw new FootballProviderResponseError("Provider fixture was not found.", requestCount);
-      const fixture = normalizeApiFixture(fixtureRows[0]), row = object(fixtureRows[0]), teams = object(row.teams), league = object(row.league), home = text(object(teams.home).id), away = text(object(teams.away).id), season = text(league.season), fetchedAt = this.now().toISOString();
+      const fixture = normalizeApiFixture(fixtureRows[0]), row = object(fixtureRows[0]), teams = object(row.teams), league = object(row.league), home = text(object(teams.home).id), away = text(object(teams.away).id), season = text(league.season), fetchedAt = this.now().toISOString(); providerIdentity = { fixtureId: fixture.providerId, leagueId: fixture.competitionProviderId, season, homeTeamId: home, awayTeamId: away };
       const requests: [NormalizedSnapshot["category"], string, Record<string, string>][] = [
         ["h2h", "fixtures/headtohead", { h2h: `${home}-${away}`, last: "10" }], ["injuries", "injuries", { fixture: providerFixtureId }], ["lineups", "fixtures/lineups", { fixture: providerFixtureId }], ["statistics", "fixtures/statistics", { fixture: providerFixtureId }], ["odds", "odds", { fixture: providerFixtureId }], ["standings", "standings", { league: fixture.competitionProviderId, season }],
       ];
@@ -265,7 +267,7 @@ export class ApiFootballProvider implements FootballDataProvider {
         if (homeForm.length || awayForm.length) snapshots.push({ fixtureProviderId: providerFixtureId, category: "form", payload: json({ homeTeamProviderId: home, awayTeamProviderId: away, home: normalizeCategory("form", homeForm), away: normalizeCategory("form", awayForm) }), providerReference: `fixtures?teams=${home},${away}&last=5`, fetchedAt });
       }
       for (const [category, endpoint, parameters] of requests) { if (!requested.has(category)) continue; requestCount++; const rows = await this.request(endpoint, parameters); if (rows.length) snapshots.push({ fixtureProviderId: providerFixtureId, category, payload: normalizeCategory(category, rows), providerReference: `${endpoint}?fixture=${providerFixtureId}`, fetchedAt }); }
-      return { fixture, snapshots, fetchedAt, requestCount };
-    } catch (error) { if (error instanceof FootballProviderResponseError) error.requestCount = Math.max(1, requestCount); throw error; }
+      return { fixture, snapshots, fetchedAt, requestCount, providerIdentity };
+    } catch (error) { if (error instanceof FootballProviderResponseError) { error.requestCount = Math.max(1, requestCount); error.providerIdentity = providerIdentity; throw error; } const normalized = new FootballProviderNormalizationError(); normalized.requestCount = Math.max(1, requestCount); normalized.providerIdentity = providerIdentity; throw normalized; }
   }
 }

@@ -82,6 +82,20 @@ export interface FixtureRefreshPayload {
   snapshots: NormalizedSnapshot[];
   fetchedAt: string;
   requestCount?: number;
+  providerIdentity?: { fixtureId: string; leagueId: string; season: string; homeTeamId: string; awayTeamId: string };
+}
+
+export interface SnapshotRefreshDiagnostic {
+  fixtureId: string;
+  providerFixtureId: string;
+  category: NormalizedSnapshot["category"];
+  status: "PERSISTED" | "EMPTY" | "PROVIDER_ERROR" | "PERSISTENCE_ERROR" | "CACHE_HIT" | "BUDGET_SKIPPED";
+  requestCount: number;
+  errorCategory: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  httpStatus: number | null;
+  providerIdentity: FixtureRefreshPayload["providerIdentity"] | null;
 }
 
 export interface StoredSnapshot {
