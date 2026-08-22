@@ -36,6 +36,8 @@ test("Match Centre uses Lagos dates and future-only Upcoming",async()=>{
   assert.match(source,/scrollIntoView/);
 });
 
+test("Match Centre Results alone sorts newest completed fixtures first",async()=>{const source=await read("components/match-browser.tsx");assert.match(source,/view==="results"\?\[\.\.\.filtered\]\.sort\(\(a,b\)=>new Date\(b\.kickoffAt\)\.getTime\(\)-new Date\(a\.kickoffAt\)\.getTime\(\)\):filtered/)});
+
 test("Results exposes only post-kickoff published frozen 1X2 predictions",async()=>{
   const [sql,repository,service,page]=await Promise.all([
     read("supabase/migrations/202608210001_p8b19_match_lifecycle_results.sql"),

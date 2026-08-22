@@ -254,17 +254,17 @@ export class ApiFootballProvider implements FootballDataProvider {
     try {
       const fixtureRows = (requestCount++, await this.request("fixtures", { id: providerFixtureId }, true));
       if (!fixtureRows[0]) throw new FootballProviderResponseError("Provider fixture was not found.", requestCount);
-      const fixture = normalizeApiFixture(fixtureRows[0]), row = object(fixtureRows[0]), teams = object(row.teams), home = text(object(teams.home).id), away = text(object(teams.away).id), fetchedAt = this.now().toISOString();
+      const fixture = normalizeApiFixture(fixtureRows[0]), row = object(fixtureRows[0]), teams = object(row.teams), league = object(row.league), home = text(object(teams.home).id), away = text(object(teams.away).id), season = text(league.season), fetchedAt = this.now().toISOString();
       const requests: [NormalizedSnapshot["category"], string, Record<string, string>][] = [
-        ["h2h", "fixtures/headtohead", { h2h: `${home}-${away}`, last: "10" }], ["injuries", "injuries", { fixture: providerFixtureId }], ["lineups", "fixtures/lineups", { fixture: providerFixtureId }], ["statistics", "fixtures/statistics", { fixture: providerFixtureId }], ["odds", "odds", { fixture: providerFixtureId }],
+        ["h2h", "fixtures/headtohead", { h2h: `${home}-${away}`, last: "10" }], ["injuries", "injuries", { fixture: providerFixtureId }], ["lineups", "fixtures/lineups", { fixture: providerFixtureId }], ["statistics", "fixtures/statistics", { fixture: providerFixtureId }], ["odds", "odds", { fixture: providerFixtureId }], ["standings", "standings", { league: fixture.competitionProviderId, season }],
       ];
       const requested = new Set(categories), snapshots: NormalizedSnapshot[] = [];
       if (requested.has("form")) {
         requestCount++; const homeForm = await this.request("fixtures", { team: home, last: "5" });
         requestCount++; const awayForm = await this.request("fixtures", { team: away, last: "5" });
-        snapshots.push({ fixtureProviderId: providerFixtureId, category: "form", payload: json({ homeTeamProviderId: home, awayTeamProviderId: away, home: normalizeCategory("form", homeForm), away: normalizeCategory("form", awayForm) }), providerReference: `fixtures?teams=${home},${away}&last=5`, fetchedAt });
+        if (homeForm.length || awayForm.length) snapshots.push({ fixtureProviderId: providerFixtureId, category: "form", payload: json({ homeTeamProviderId: home, awayTeamProviderId: away, home: normalizeCategory("form", homeForm), away: normalizeCategory("form", awayForm) }), providerReference: `fixtures?teams=${home},${away}&last=5`, fetchedAt });
       }
-      for (const [category, endpoint, parameters] of requests) { if (!requested.has(category)) continue; requestCount++; const rows = await this.request(endpoint, parameters); snapshots.push({ fixtureProviderId: providerFixtureId, category, payload: normalizeCategory(category, rows), providerReference: `${endpoint}?fixture=${providerFixtureId}`, fetchedAt }); }
+      for (const [category, endpoint, parameters] of requests) { if (!requested.has(category)) continue; requestCount++; const rows = await this.request(endpoint, parameters); if (rows.length) snapshots.push({ fixtureProviderId: providerFixtureId, category, payload: normalizeCategory(category, rows), providerReference: `${endpoint}?fixture=${providerFixtureId}`, fetchedAt }); }
       return { fixture, snapshots, fetchedAt, requestCount };
     } catch (error) { if (error instanceof FootballProviderResponseError) error.requestCount = Math.max(1, requestCount); throw error; }
   }
