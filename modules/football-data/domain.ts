@@ -89,7 +89,7 @@ export interface SnapshotRefreshDiagnostic {
   fixtureId: string;
   providerFixtureId: string;
   category: NormalizedSnapshot["category"];
-  status: "PERSISTED" | "EMPTY" | "PROVIDER_ERROR" | "PERSISTENCE_ERROR" | "CACHE_HIT" | "BUDGET_SKIPPED";
+  status: "PERSISTED" | "EMPTY" | "PROVIDER_ERROR" | "PERSISTENCE_ERROR" | "CACHE_HIT" | "BUDGET_SKIPPED" | "NOT_EXPECTED" | "SHARED_REUSE";
   requestCount: number;
   errorCategory: string | null;
   errorCode: string | null;

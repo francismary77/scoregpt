@@ -29,8 +29,10 @@ test("provider values normalize without leaking provider-specific statuses", () 
 test("freshness differentiates live, near-match, upcoming and finished data", () => {
   const now = new Date(fetchedAt);
   const nearKickoff = "2026-08-08T11:00:00.000Z";
-  assert.ok(freshnessLifetimeMs("statistics", "live", kickoffAt, now) < freshnessLifetimeMs("statistics", "scheduled", kickoffAt, now));
-  assert.ok(freshnessLifetimeMs("statistics", "scheduled", nearKickoff, now) < freshnessLifetimeMs("statistics", "scheduled", kickoffAt, now));
+  assert.equal(freshnessLifetimeMs("statistics", "live", kickoffAt, now), 5 * 60_000);
+  assert.equal(freshnessLifetimeMs("lineups", "scheduled", nearKickoff, now), 15 * 60_000);
+  assert.equal(freshnessLifetimeMs("h2h", "scheduled", kickoffAt, now), 72 * 3_600_000);
+  assert.equal(freshnessLifetimeMs("form", "scheduled", kickoffAt, now), 12 * 3_600_000);
   assert.equal(freshnessLifetimeMs("statistics", "finished", kickoffAt, now), null);
   assert.equal(expiresAtFor("statistics", "finished", kickoffAt, fetchedAt), null);
   assert.equal(cacheState(null, now), "fresh");
