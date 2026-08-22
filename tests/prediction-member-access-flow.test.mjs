@@ -49,3 +49,11 @@ test("match navigation explicitly restores top-of-page scrolling", async () => {
   const [card, home, pricing] = await Promise.all([read("components/football-fixture-card.tsx"), read("app/page.tsx"), read("app/pricing/page.tsx")]);
   assert.match(card, /<Link scroll href=\{`\/matches\//); assert.match(home, /<Link scroll href=\{`\/matches\//); assert.match(pricing, /<Link scroll className="button button-ghost" href=\{`\/matches\//);
 });
+
+test("Member Access shows only genuinely future scheduled published predictions", async () => {
+  const page = await read("app/pricing/page.tsx");
+  assert.match(page, /availableReports=data\.reports\.filter/);
+  assert.match(page, /report\.fixture\.status==="scheduled"/);
+  assert.match(page, /new Date\(report\.fixture\.kickoffAt\)\.getTime\(\)>now/);
+  assert.match(page, /availableReports\.map/);
+});
