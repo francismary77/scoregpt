@@ -8,6 +8,6 @@
     { "path": "/api/cron/football/enrichment", "schedule": "47 2 * * *" },
     { "path": "/api/cron/football/predictions", "schedule": "17 3 * * *" },
     { "path": "/api/cron/football/publication", "schedule": "17 4 * * *" },
-    { "path": "/api/cron/football/settlement", "schedule": "17 5 * * *" }
+    { "path": "/api/cron/football/settlement", "schedule": "17 */2 * * *" }
   ]
 }
